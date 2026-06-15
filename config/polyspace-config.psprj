@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<polyspace_project version="2.0">
+  <project_name>${PROJECT_NAME}</project_name>
+  <project_root>${WORKSPACE}</project_root>
+
+  <source_files>
+    <include>src/**/*.c</include>
+    <include>src/**/*.cpp</include>
+    <include>src/**/*.h</include>
+    <include>src/**/*.hpp</include>
+    <exclude>**/build/**</exclude>
+    <exclude>**/third_party/**</exclude>
+    <exclude>**/test/**</exclude>
+    <exclude>**/vendor/**</exclude>
+  </source_files>
+
+  <analysis_options>
+    <bug_finder enabled="true">
+      <checkers>
+        <checker>ALL</checker>
+      </checkers>
+    </bug_finder>
+    <code_prover enabled="true">
+      <mode>thorough</mode>
+      <precision>high</precision>
+      <main_generator enabled="true"/>
+    </code_prover>
+    <misra_c enable="true" standard="misra_c_2012">
+      <mandatory>true</mandatory>
+      <required>true</required>
+      <advisory>false</advisory>
+    </misra_c>
+    <misra_cpp enable="true" standard="misra_cpp_2023">
+      <mandatory>true</mandatory>
+    </misra_cpp>
+  </analysis_options>
+
+  <target>
+    <compiler>generic</compiler>
+    <cpu_family>arm</cpu_family>
+    <sizeof_int>4</sizeof_int>
+    <sizeof_long>4</sizeof_long>
+    <sizeof_pointer>4</sizeof_pointer>
+    <endianness>little</endianness>
+    <char_signedness>unsigned</char_signedness>
+  </target>
+
+  <defines>
+    <define>EMBEDDED_SYSTEM</define>
+    <define>__arm__</define>
+  </defines>
+
+  <include_paths>
+    <path>src/include</path>
+    <path>src/hal</path>
+    <path>${IDE_TOOLCHAIN_PATH}/include</path>
+  </include_paths>
+
+  <output>
+    <format>html</format>
+    <format>xml</format>
+    <results_dir>polyspace-results</results_dir>
+    <upload_to_dashboard>true</upload_to_dashboard>
+    <dashboard_url>${POLYSPACE_DASHBOARD_URL}</dashboard_url>
+  </output>
+</polyspace_project>

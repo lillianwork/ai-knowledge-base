@@ -1,0 +1,48 @@
+{
+  "test_frameworks": {
+    "unit": {
+      "name": "CppUTest",
+      "executable_pattern": "build/test/unit/*_test",
+      "report_pattern": "build/test/unit/*_results.xml",
+      "report_format": "junit",
+      "coverage_tool": "gcov",
+      "coverage_pattern": "build/coverage/**/*.gcda"
+    },
+    "integration": {
+      "name": "CustomHW",
+      "executable_pattern": "build/test/integration/*_itest",
+      "report_pattern": "build/test/integration/*_results.xml",
+      "report_format": "junit",
+      "hw_target": "${TEST_HW_TARGET}",
+      "runner_endpoint": "${TEST_RUNNER_ENDPOINT}"
+    },
+    "functional": {
+      "name": "RobotFramework",
+      "test_suite_path": "test/functional/",
+      "report_pattern": "build/test/functional/output.xml",
+      "report_format": "robot"
+    }
+  },
+  "execution": {
+    "parallel_threads": 4,
+    "timeout_seconds": 3600,
+    "retry_on_failure": 1,
+    "fail_fast": false,
+    "collect_coverage": true,
+    "notify_testers": true,
+    "tester_assignee_pattern": "test-lead"
+  },
+  "testers": {
+    "groups": {
+      "unit": ["${COMMITTER_USERNAME}"],
+      "integration": ["${TEST_LEAD}", "${TEST_ENGINEER}"],
+      "functional": ["${TEST_LEAD}", "${QA_TEAM}"]
+    },
+    "notification": {
+      "on_success": false,
+      "on_failure": true,
+      "on_fixed": true,
+      "channels": ["gitlab_issue", "email"]
+    }
+  }
+}

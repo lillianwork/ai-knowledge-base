@@ -1,0 +1,232 @@
+stages:
+  - .pre
+  - checkout
+  - build
+  - scan
+  - issue-assign
+  - quality-gate
+  - test
+  - defect-track
+  - archive
+
+variables:
+  GIT_DEPTH: "0"
+  GIT_STRATEGY: clone
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  BUILD_WRAPPER_OUTPUT: "bw-output"
+  RESULTS_DIR: "${CI_PROJECT_DIR}/scan-reports"
+  BUILD_DIR: "${CI_PROJECT_DIR}/build"
+
+cache:
+  key: "${CI_JOB_NAME}-${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .sonar/cache
+    - build/
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^release\//
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == 'push'
+
+.scripts_setup: &scripts_setup
+  - chmod +x scripts/*.sh
+
+.notify_failure: &notify_failure
+  - |
+    echo "Stage failed — checking if scan issues exist for auto-assignment"
+
+# ─── Pre Stage: Download Tools ────────────────────────────────────
+download-sonar-scanner:
+  stage: .pre
+  image: curlimages/curl:latest
+  script:
+    - mkdir -p /tmp/sonar-tools
+    - |
+      if [ ! -f /tmp/sonar-tools/sonar-scanner-cli.zip ]; then
+        curl -sSL -o /tmp/sonar-tools/sonar-scanner-cli.zip \
+          "${SONAR_HOST_URL}/static/cpp/build-wrapper-linux-x86.zip" || true
+      fi
+    - |
+      if [ ! -f /tmp/sonar-tools/build-wrapper.zip ]; then
+        curl -sSL -o /tmp/sonar-tools/build-wrapper.zip \
+          "${SONAR_HOST_URL}/static/cpp/build-wrapper-linux-x86.zip" || true
+      fi
+  cache:
+    key: sonar-tools
+    paths:
+      - .sonar-tools/
+
+# ─── Checkout ─────────────────────────────────────────────────────
+checkout:
+  stage: checkout
+  script:
+    - *scripts_setup
+    - git fetch --tags
+    - echo "COMMITTER=$(git log -1 --format='%ae')" >> build.env
+    - echo "COMMIT_SHORT=$(git rev-parse --short HEAD)" >> build.env
+    - echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+    paths:
+      - build.env
+
+# ─── Build ────────────────────────────────────────────────────────
+build:
+  stage: build
+  needs: [checkout]
+  script:
+    - *scripts_setup
+    - export IDE_TOOLCHAIN="${IDE_TOOLCHAIN:-gcc}"
+    - export BUILD_TYPE="${BUILD_TYPE:-Debug}"
+    - scripts/build-ide.sh
+  artifacts:
+    paths:
+      - bw-output/
+      - build/output/
+      - build/logs/
+      - build/build-info.json
+    expire_in: 7 days
+
+# ─── Scan (Parallel: SonarQube + Polyspace) ───────────────────────
+sonarqube:
+  stage: scan
+  needs: [build]
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  script:
+    - *scripts_setup
+    - export SONAR_TOKEN="${SONAR_TOKEN}"
+    - export SONAR_HOST_URL="${SONAR_HOST_URL:-http://sonarqube:9000}"
+    - scripts/sonar-scanner.sh
+  artifacts:
+    paths:
+      - scan-reports/
+    expire_in: 30 days
+  rules:
+    - if: $SKIP_SONARQUBE
+      when: never
+    - when: always
+
+polyspace:
+  stage: scan
+  needs: [build]
+  image: ${POLYSPACE_IMAGE:-mathworks/polyspace:latest}
+  script:
+    - *scripts_setup
+    - export POLYSPACE_HOME="/opt/polyspace"
+    - scripts/polyspace-scanner.sh
+  artifacts:
+    paths:
+      - scan-reports/polyspace/
+    expire_in: 30 days
+  rules:
+    - if: $SKIP_POLYSPACE || $POLYSPACE_LICENSE == ""
+      when: never
+    - when: always
+  allow_failure: true
+
+# ─── Issue Assignment ─────────────────────────────────────────────
+issue-assignment:
+  stage: issue-assign
+  needs: [sonarqube, polyspace]
+  script:
+    - *scripts_setup
+    - export GITLAB_API_TOKEN="${GITLAB_API_TOKEN}"
+    - export GITLAB_HOST_URL="${CI_SERVER_URL}"
+    - scripts/assign-issues.sh
+  rules:
+    - if: $GITLAB_API_TOKEN == ""
+      when: never
+    - when: on_success
+  artifacts:
+    paths:
+      - scan-issues/
+    expire_in: 180 days
+
+# ─── Quality Gate ─────────────────────────────────────────────────
+quality-gate:
+  stage: quality-gate
+  needs: [issue-assignment]
+  script:
+    - *scripts_setup
+    - scripts/quality-gate.sh
+  artifacts:
+    paths:
+      - gate-results/
+    expire_in: 90 days
+
+# ─── Automated Testing ────────────────────────────────────────────
+unit-tests:
+  stage: test
+  needs: [quality-gate]
+  script:
+    - *scripts_setup
+    - scripts/trigger-tests.sh
+  artifacts:
+    reports:
+      junit: build/test/**/*_results.xml
+    paths:
+      - build/test/
+    expire_in: 30 days
+  coverage: '/TEST_PASS_RATE=(\d+\.?\d*)/'
+
+integration-tests:
+  stage: test
+  needs: [quality-gate]
+  script:
+    - *scripts_setup
+    - export TEST_HW_TARGET="${TEST_HW_TARGET}"
+    - scripts/trigger-tests.sh
+  artifacts:
+    reports:
+      junit: build/test/integration/*_results.xml
+    paths:
+      - build/test/integration/
+    expire_in: 30 days
+  rules:
+    - if: $TEST_HW_TARGET == ""
+      when: never
+    - when: on_success
+  allow_failure: true
+
+# ─── Defect Tracking ──────────────────────────────────────────────
+defect-tracking:
+  stage: defect-track
+  needs: [unit-tests, integration-tests]
+  script:
+    - *scripts_setup
+    - export GITLAB_API_TOKEN="${GITLAB_API_TOKEN}"
+    - scripts/defect-tracker.sh
+  artifacts:
+    paths:
+      - defects/
+    expire_in: 180 days
+  rules:
+    - if: $GITLAB_API_TOKEN == ""
+      when: never
+    - when: on_success
+
+# ─── Archive ──────────────────────────────────────────────────────
+archive:
+  stage: archive
+  needs: [defect-tracking, quality-gate]
+  script:
+    - *scripts_setup
+    - export NEXUS_PASSWORD="${NEXUS_PASSWORD}"
+    - scripts/archive-artifacts.sh
+  artifacts:
+    paths:
+      - build/output/
+      - build/sbom/
+    expire_in: never
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^release\//
+    - if: $CI_COMMIT_TAG

@@ -1,0 +1,93 @@
+{
+  "archive": {
+    "repository": {
+      "type": "nexus",
+      "url": "${NEXUS_HOST_URL}",
+      "repository_name": "embedded-firmware-releases",
+      "format": "raw"
+    },
+    "backup": {
+      "type": "filesystem",
+      "path": "/var/archive/firmware"
+    }
+  },
+  "artifacts": {
+    "source_code": {
+      "path": "${WORKSPACE}/src",
+      "archive_name": "source-${VERSION}.tar.gz",
+      "compress": true,
+      "include_vcs_info": true
+    },
+    "design_documents": {
+      "path": "${WORKSPACE}/docs",
+      "archive_name": "design-docs-${VERSION}.tar.gz",
+      "compress": true,
+      "required": false,
+      "patterns": ["*.pdf", "*.md", "*.drawio", "*.svg"]
+    },
+    "firmware_binaries": {
+      "path": "${WORKSPACE}/build/output",
+      "archive_name": "firmware-${VERSION}.tar.gz",
+      "compress": true,
+      "patterns": ["*.bin", "*.hex", "*.elf", "*.map", "*.s19"],
+      "required": true
+    },
+    "build_logs": {
+      "path": "${WORKSPACE}/build/logs",
+      "archive_name": "build-logs-${VERSION}.tar.gz",
+      "compress": true,
+      "patterns": ["*.log"]
+    },
+    "scan_reports": {
+      "path": "${WORKSPACE}/scan-reports",
+      "archive_name": "scan-reports-${VERSION}.tar.gz",
+      "compress": true,
+      "patterns": ["sonarqube-report.json", "polyspace-results/**"]
+    },
+    "test_reports": {
+      "path": "${WORKSPACE}/build/test",
+      "archive_name": "test-reports-${VERSION}.tar.gz",
+      "compress": true,
+      "patterns": ["*_results.xml", "output.xml", "coverage/**"]
+    },
+    "test_case_library": {
+      "path": "${WORKSPACE}/test",
+      "archive_name": "test-case-library-${VERSION}.tar.gz",
+      "compress": true,
+      "patterns": ["**/*.cpp", "**/*.h", "**/*.robot"]
+    },
+    "defect_database": {
+      "path": "${WORKSPACE}/defects",
+      "archive_name": "defect-db-${VERSION}.tar.gz",
+      "compress": true,
+      "patterns": ["*.json", "*.csv"],
+      "required": false
+    },
+    "scan_issue_database": {
+      "path": "${WORKSPACE}/scan-issues",
+      "archive_name": "scan-issues-${VERSION}.tar.gz",
+      "compress": true,
+      "patterns": ["*.json", "*.csv"],
+      "required": false
+    },
+    "sbom": {
+      "path": "${WORKSPACE}/build/sbom",
+      "archive_name": "sbom-${VERSION}.tar.gz",
+      "compress": true,
+      "patterns": ["*.json", "*.xml", "*.spdx"],
+      "required": false
+    }
+  },
+  "version_strategy": {
+    "source": "git_tag",
+    "fallback": "git_sha",
+    "format": "v${MAJOR}.${MINOR}.${PATCH}",
+    "snapshot_suffix": "-SNAPSHOT",
+    "release_branches": ["main", "release/*"]
+  },
+  "retention": {
+    "snapshot_versions": 10,
+    "release_versions": -1,
+    "cleanup_policy": "keep_latest_per_minor"
+  }
+}

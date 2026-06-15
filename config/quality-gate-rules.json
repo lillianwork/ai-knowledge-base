@@ -1,0 +1,113 @@
+{
+  "quality_gates": {
+    "sonarqube": {
+      "name": "Embedded C/C++ Quality Gate",
+      "conditions": [
+        {
+          "metric": "new_bugs",
+          "op": "GT",
+          "threshold": 0,
+          "severity": "BLOCKER"
+        },
+        {
+          "metric": "new_vulnerabilities",
+          "op": "GT",
+          "threshold": 0,
+          "severity": "BLOCKER"
+        },
+        {
+          "metric": "new_code_smells",
+          "op": "GT",
+          "threshold": 10,
+          "severity": "MAJOR"
+        },
+        {
+          "metric": "new_duplicated_lines_density",
+          "op": "GT",
+          "threshold": 3.0,
+          "severity": "MAJOR"
+        },
+        {
+          "metric": "new_security_hotspots",
+          "op": "GT",
+          "threshold": 0,
+          "severity": "CRITICAL"
+        },
+        {
+          "metric": "new_coverage",
+          "op": "LT",
+          "threshold": 60.0,
+          "severity": "WARNING"
+        }
+      ],
+      "action_on_failure": "BLOCK_MERGE"
+    },
+    "polyspace": {
+      "name": "Polyspace Verification Gate",
+      "conditions": [
+        {
+          "check": "red_errors",
+          "op": "GT",
+          "threshold": 0,
+          "severity": "BLOCKER"
+        },
+        {
+          "check": "gray_errors",
+          "op": "GT",
+          "threshold": 0,
+          "severity": "BLOCKER"
+        },
+        {
+          "check": "orange_errors",
+          "op": "GT",
+          "threshold": 5,
+          "severity": "MAJOR"
+        },
+        {
+          "check": "misra_violations_mandatory",
+          "op": "GT",
+          "threshold": 0,
+          "severity": "BLOCKER"
+        },
+        {
+          "check": "misra_violations_required",
+          "op": "GT",
+          "threshold": 20,
+          "severity": "MAJOR"
+        }
+      ],
+      "action_on_failure": "BLOCK_MERGE"
+    },
+    "test": {
+      "name": "Test Coverage Gate",
+      "conditions": [
+        {
+          "metric": "test_pass_rate",
+          "op": "LT",
+          "threshold": 95.0,
+          "severity": "BLOCKER"
+        },
+        {
+          "metric": "unit_test_coverage",
+          "op": "LT",
+          "threshold": 70.0,
+          "severity": "MAJOR"
+        },
+        {
+          "metric": "integration_test_pass_rate",
+          "op": "LT",
+          "threshold": 100.0,
+          "severity": "CRITICAL"
+        }
+      ],
+      "action_on_failure": "BLOCK_MERGE"
+    }
+  },
+  "global_settings": {
+    "require_all_gates_pass": true,
+    "allow_override_by_admin": true,
+    "notification_channels": ["gitlab_issue", "email", "slack"],
+    "auto_assign_issues": true,
+    "auto_close_on_fix_verified": true
+  }
+}

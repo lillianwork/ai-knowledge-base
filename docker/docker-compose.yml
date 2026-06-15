@@ -1,0 +1,132 @@
+version: "3.8"
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:17.0.0-ce.0
+    container_name: cicd-gitlab
+    hostname: gitlab.local
+    ports:
+      - "8443:443"
+      - "8080:80"
+      - "2222:22"
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.local'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        gitlab_rails['lfs_enabled'] = true
+        gitlab_rails['initial_root_password'] = '${GITLAB_ROOT_PASSWORD:-changeme123}'
+    networks:
+      - cicd-network
+    restart: unless-stopped
+
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: cicd-jenkins
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../scripts:/var/jenkins_home/scripts
+      - ../config:/var/jenkins_home/config
+    environment:
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false -Dhudson.security.csrf.DefaultCrumbIssuer.EXCLUDED_CALLS_FROM_CRUMB_ISSUER=gitlab-webhook"
+      SONAR_HOST_URL: "http://sonarqube:9000"
+      GITLAB_HOST_URL: "http://gitlab:80"
+      NEXUS_HOST_URL: "http://nexus:8081"
+    networks:
+      - cicd-network
+    depends_on:
+      - gitlab
+      - sonarqube
+    restart: unless-stopped
+
+  sonarqube:
+    image: sonarqube:10.6-community
+    container_name: cicd-sonarqube
+    ports:
+      - "9000:9000"
+      - "9092:9092"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    networks:
+      - cicd-network
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  sonarqube-init:
+    image: curlimages/curl:latest
+    container_name: cicd-sonarqube-init
+    depends_on:
+      - sonarqube
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "Waiting for SonarQube to be ready..."
+        until curl -s -o /dev/null -w "%{http_code}" http://sonarqube:9000/api/system/status | grep -q 200; do
+          sleep 5
+        done
+        echo "SonarQube is ready. Installing C/C++ plugin..."
+        curl -s -u admin:admin -X POST "http://sonarqube:9000/api/plugins/install?key=cpp"
+        curl -s -u admin:admin -X POST "http://sonarqube:9000/api/plugins/install?key=sonarscm-git-plugin"
+        echo "Restarting SonarQube..."
+        curl -s -u admin:admin -X POST "http://sonarqube:9000/api/system/restart"
+        echo "SonarQube initialization complete."
+    networks:
+      - cicd-network
+
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: cicd-nexus
+    ports:
+      - "8082:8081"
+    volumes:
+      - nexus_data:/nexus-data
+    environment:
+      INSTALL4J_ADD_VM_PARAMS: "-Xms512m -Xmx512m"
+    networks:
+      - cicd-network
+    restart: unless-stopped
+
+  jenkins-agent-embedded:
+    image: jenkins/inbound-agent:latest-jdk17
+    container_name: cicd-jenkins-agent
+    environment:
+      JENKINS_URL: "http://jenkins:8080"
+      JENKINS_AGENT_NAME: "embedded-build-agent"
+      JENKINS_SECRET: "${JENKINS_AGENT_SECRET:-}"
+      JENKINS_AGENT_WORKDIR: "/home/jenkins/agent"
+    volumes:
+      - agent_workspace:/home/jenkins/agent/workspace
+      - ../scripts:/home/jenkins/scripts
+    networks:
+      - cicd-network
+    restart: unless-stopped
+
+volumes:
+  gitlab_config:
+  gitlab_logs:
+  gitlab_data:
+  jenkins_home:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  nexus_data:
+  agent_workspace:
+
+networks:
+  cicd-network:
+    driver: bridge
