@@ -1,0 +1,45 @@
+# Hermes Agent从零基础到精通
+
+> 原作者：共研社AIGC知识库（原作者：林艾文Ivan 等）
+
+> 来源：[共研社AIGC知识库](https://tauacgr5lqv.feishu.cn/wiki/Ey1sw5L1tij6WLkBhNQc092Lnrd)
+
+---
+
+🫱
+Hermes Agent从零基础到精通—最细部署指南，30分钟手把手教程！​
+5月9日修改
+
+本文讨论了 Hermes Agent 的零基础部署指南，涵盖其特点、安装准备、环境搭建、模型选择、安装配置、使用方法及常见问题解决等内容。关键要点包括：​
+1.
+Hermes Agent 简介：由 Nous Research 出品的 MIT 开源 AI Agent，两个月冲到 82,000+ stars，会从经验中学习，能自动生成 SOP 复用，与 Claude Code、OpenClaw 功能互补。​
+2.
+适用人群：没装过 OpenClaw 的人、觉得 OpenClaw 不够聪明的人、想体验“Agent 自动长出 Skill”的人。​
+3.
+安装准备：了解终端/命令行、Python + shell 脚本、API Key、WSL2（Windows 用户）等基础概念，注意国内访问 GitHub 慢和终端输出提示。​
+4.
+前置环境搭建：Mac 用户确认 macOS ≥ 12，安装 Homebrew、Python 3.11 和 git；Windows 用户开启 WSL2，进入 Ubuntu 设账号，安装 Python 3.11、git 和 curl。​
+5.
+模型选择：可选择 MiniMax Coding Plan（主推）或火山方舟 Coding Plan，备齐 API Key、Base URL、Model 名字。​
+6.
+安装配置：使用一条 curl 命令安装并运行向导，按顺序回答问题生成配置文件，验证安装是否成功。​
+7.
+使用方法及特点：正常使用 Hermes 完成任务后，它会自动生成 SOP 备忘录，下次同类任务直接复用；还具备闭环学习、MCP 双向集成、Honcho 辩证建模等进阶功能。 ​
+万字零基础安装Hermes Agent全教程， 高智商小龙虾，你值得拥有。​
+Hermes Agent。最近都说有替代 Openclaw 的趋势。​
+一个两个月冲到 82,000+ stars 的东西，或许你也可以试一试。​
+这一篇，我把所有坑汇总进来做成了这份保姆级教程。Mac 和 Windows 双平台，关键步骤每步截图。不懂 Python、不懂命令行、不懂 Linux——只要会复制粘贴，就能从零跑到你自己的 Hermes 亮起来那一刻。​
+我先和你说 Hermes 适合谁：​
+1.
+没装过 OpenClaw、一直在门外看热闹的人——别绕弯子了，直接从 Hermes 上车，起步就比别人少踩一轮坑。​
+2.
+装了 OpenClaw、但总觉得它不够聪明的人——Hermes 会把你每天交代它干的活悄悄记下来，越用越懂你，是那种"昨天教过今天就会"的感觉。​
+3. 想体验"Agent 自动长出 Skill"的人——OpenClaw 的 Skill 要你手写，Hermes 能在你干完活之后自己在 ~/.hermes/skills/ 里写一份 SOP，下次同类任务直接复用。​
+4.
+小声说，其实每个人都适合！！！​
+对号入座完，咱们开始。​
+阅读导航：​
+
+---
+
+*编辑整理：李良艳*

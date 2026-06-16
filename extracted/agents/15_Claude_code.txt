@@ -1,0 +1,110 @@
+TITLE: Claude code
+URL: https://tauacgr5lqv.feishu.cn/wiki/IZjdwZZXmihn14khm58c7qhDnFN
+CONTENT_LENGTH: 1127
+============================================================
+
+飞书云文档
+艾
+艾文AIGC知识库（新）
+互联网公开
+搜索
+问问知识库
+目录
+🏆
+共研社AIGC知识库
+🌟
+AIGC新手入门教程
+📕
+小红书热门资料精选
+​
+AI提示词
+​
+AI智能体
+🧮
+通用智能体对比
+👉
+基础概念学习指南
+🖋️
+理论知识学习指南
+🟠
+Gemin3 pro从零基础到精通学习手册
+🔴
+Coze从零基础到精通
+🔵
+n8n从零基础到精通
+🟤
+GPTs从零基础到精通
+⚪
+Manus从零基础到精通
+🟡
+flowith从零基础到精通
+🟢
+Lovart.ai从零基础到精通
+🟣
+Skywork 天工从零基础到精通
+⚫
+MiniMax Agent从零基础到精通
+🟥
+OpenClaw从零基础到精通
+🍈
+Skills从零基础到精通
+🍇
+Claude code
+Claude Code 简介
+Claude Code 安装与使用
+Claude Code 如何工作
+Claude Code API 配置
+Coding Plan
+Claude Code 第一次使用
+VS Code 安装 Claude Code
+Claude Code 项目初始化
+Claude Code 交互模式
+Claude Code 操作说明
+Claude Code 基础用法
+Claude Code MCP
+Claude Code 子代理（Subagent）
+Claude Code 插件
+Agent Skills（智能体技能）
+别再手动整理笔记了！Obsidian接入Claude Code，全自动化知识库
+Obsidian + NotebookLM + Gemini搭一套「学习外挂」，信息吸收效率直接起飞
+100个实用Skills安装合集，可以直接上手，易操作！完整版教程！
+飞书 CLI 开源！我用 Claude Code 搭了一套全自动爆款内容流程（附手把手教程）
+飞书开放CLI：一键接入Claude Code、OpenClaw，最新教程来了
+Claude 接入DeepSeek-V4（保姆级教程）
+🍉
+WorkBuddy 从零基础到精通实操手册
+👍
+Obsidian从零基础到精通学习手册完整版
+🫱
+Hermes Agent从零基础到精通—最细部署指南，30分钟手把手教程！
+😍
+Codex入门教程完整版—从零基础到精通学习手册
+Vibe Coding 从入门到精通学习手册
+​
+AI绘画
+​
+AI视频
+广州沐瓜科技有限公司
+艾文AIGC知识库（新）
+🏆
+共研社AIGC知识库
+​
+AI智能体
+🍇
+Claude code
+外部
+最近修改: 6月2日 14:49
+分享
+🍇
+Claude code​
+薯条
+晴
+6月2日修改
+​
+宫格
+显示设置
+上传
+新建
+名称
+​
+​

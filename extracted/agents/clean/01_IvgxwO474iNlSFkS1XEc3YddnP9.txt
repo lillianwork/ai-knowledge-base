@@ -1,0 +1,91 @@
+TOKEN: IvgxwO474iNlSFkS1XEc3YddnP9
+TITLE: 通用智能体对比
+URL: https://tauacgr5lqv.feishu.cn/wiki/IvgxwO474iNlSFkS1XEc3YddnP9
+PAGE_TITLE: 通用智能体对比 - 飞书云文档
+CONTENT_LENGTH: 704
+============================================================
+
+Dify、n8n、Coze、Fastgpt、Ragflow到底该怎么选？超详细指南～
+盘点六个超火的开源智能体开发平台，横向对比，哪个更适合你的场景
+XAIR：AI 智能体平台对决：腾讯元器与字节扣子的创新之路
+👉
+基础概念学习指南
+🖋️
+理论知识学习指南
+🟠
+Gemin3 pro从零基础到精通学习手册
+🔴
+Coze从零基础到精通
+🔵
+n8n从零基础到精通
+🟤
+GPTs从零基础到精通
+⚪
+Manus从零基础到精通
+🟡
+flowith从零基础到精通
+🟢
+Lovart.ai从零基础到精通
+🟣
+Skywork 天工从零基础到精通
+⚫
+MiniMax Agent从零基础到精通
+🟥
+OpenClaw从零基础到精通
+🍈
+Skills从零基础到精通
+🍇
+Claude code
+🍉
+WorkBuddy 从零基础到精通实操手册
+👍
+Obsidian从零基础到精通学习手册完整版
+🫱
+Hermes Agent从零基础到精通—最细部署指南，30分钟手把手教程！
+😍
+Codex入门教程完整版—从零基础到精通学习手册
+Vibe Coding 从入门到精通学习手册
+​
+AI绘画
+​
+AI视频
+​
+AI写作
+​
+AI办公
+​
+AI编程
+​
+AI教育
+​
+AI声音
+​
+AI音乐
+​
+AI数字人
+​
+AI研究报告
+💻
+《一人公司》行动指南知识库
+广州沐瓜科技有限公司
+艾文AIGC知识库（新）
+🏆
+共研社AIGC知识库
+​
+AI智能体
+🧮
+通用智能体对比
+外部
+最近修改: 2025年11月4日
+
+🧮
+通用智能体对比
+Agent搭建工具：
+文档目录：
+🧮
+通用智能体对比​
+Gybbb
+陶克银
+2025年11月4日修改
+​
+​

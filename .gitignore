@@ -20,3 +20,5 @@ gate-results/
 .env
 *.local
 .claude/
+chrome-temp-profile/
+screenshots/
