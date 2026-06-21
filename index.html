@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lillian的AIGC知识库 — AI 知识库</title>
+<style>
+:root {
+    --bg: #f8f9fa; --surface: #fff; --text: #1a1a2e; --text-secondary: #555;
+    --primary: #4f46e5; --primary-light: #eef2ff; --border: #e2e8f0;
+    --accent: #f59e0b; --shadow: 0 1px 3px rgba(0,0,0,.08);
+    --sidebar-bg: #1e1b4b; --sidebar-text: #e0e0f0; --sidebar-hover: #312e81;
+    --sidebar-active: #4f46e5; --tag-bg: #f0f0ff; --tag-text: #4f46e5;
+    --radius: 10px; --transition: 0.2s ease;
+}
+[data-theme="dark"] {
+    --bg: #0f172a; --surface: #1e293b; --text: #e2e8f0; --text-secondary: #94a3b8;
+    --primary: #818cf8; --primary-light: #1e1b4b; --border: #334155;
+    --shadow: 0 1px 3px rgba(0,0,0,.3); --sidebar-bg: #0c0a2e;
+    --sidebar-text: #c7d2fe; --sidebar-hover: #1e1b4b; --tag-bg: #1e1b4b;
+    --tag-text: #a5b4fc;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--text); line-height:1.6; display:flex; min-height:100vh; }
+a { color:var(--primary); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* Sidebar */
+.sidebar {
+    width:280px; min-width:280px; background:var(--sidebar-bg); color:var(--sidebar-text);
+    position:fixed; top:0; left:0; bottom:0; z-index:100; display:flex; flex-direction:column;
+    transition: transform var(--transition); overflow-y:auto;
+}
+.sidebar-header { padding:24px 20px 16px; border-bottom:1px solid rgba(255,255,255,.1); }
+.sidebar-header h1 { font-size:1.1rem; color:#fff; line-height:1.4; }
+.sidebar-header .subtitle { font-size:.75rem; color:rgba(255,255,255,.5); margin-top:4px; }
+.sidebar-nav { flex:1; padding:12px 0; overflow-y:auto; }
+.sidebar-nav ul { list-style:none; }
+.sidebar-nav li a {
+    display:flex; align-items:center; gap:8px; padding:8px 20px; font-size:.88rem;
+    color:var(--sidebar-text); transition:background var(--transition); border-left:3px solid transparent;
+}
+.sidebar-nav li a:hover { background:var(--sidebar-hover); text-decoration:none; border-left-color:var(--primary); }
+.sidebar-nav li a .count {
+    margin-left:auto; background:rgba(255,255,255,.15); color:rgba(255,255,255,.7);
+    font-size:.7rem; padding:2px 7px; border-radius:10px; min-width:22px; text-align:center;
+}
+.sidebar-footer { padding:12px 20px; border-top:1px solid rgba(255,255,255,.1); font-size:.72rem; color:rgba(255,255,255,.4); }
+
+/* Main */
+.main { margin-left:280px; flex:1; padding:32px 40px; max-width:1000px; }
+.hero { margin-bottom:36px; }
+.hero h1 { font-size:2rem; font-weight:800; color:var(--text); }
+.hero .meta { color:var(--text-secondary); font-size:.88rem; margin-top:6px; }
+.hero .stats { display:flex; gap:16px; margin-top:12px; flex-wrap:wrap; }
+.hero .stat { background:var(--primary-light); color:var(--primary); padding:6px 14px; border-radius:20px; font-size:.82rem; font-weight:600; }
+
+/* Search & Controls */
+.controls { display:flex; gap:12px; margin-bottom:28px; flex-wrap:wrap; align-items:center; }
+.search-box {
+    flex:1; min-width:200px; padding:10px 16px; border:2px solid var(--border);
+    border-radius:var(--radius); font-size:.9rem; background:var(--surface); color:var(--text);
+    transition:border-color var(--transition); outline:none;
+}
+.search-box:focus { border-color:var(--primary); }
+.btn {
+    padding:10px 18px; border:none; border-radius:var(--radius); cursor:pointer;
+    font-size:.85rem; font-weight:600; transition:all var(--transition);
+    background:var(--surface); color:var(--text); border:2px solid var(--border);
+}
+.btn:hover { border-color:var(--primary); color:var(--primary); }
+.btn-icon { font-size:1.1rem; }
+
+/* Category cards */
+.category {
+    background:var(--surface); border-radius:var(--radius); padding:24px 28px;
+    margin-bottom:20px; box-shadow:var(--shadow); border:1px solid var(--border);
+    transition: box-shadow var(--transition);
+}
+.category:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+.category:target { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-light); }
+.cat-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+.cat-header h2 { font-size:1.25rem; font-weight:700; }
+.cat-desc { color:var(--text-secondary); font-size:.9rem; margin-bottom:16px; }
+.feishu-link { font-size:.8rem; padding:4px 10px; border-radius:6px; background:var(--primary-light); color:var(--primary); white-space:nowrap; }
+.feishu-link:hover { text-decoration:none; opacity:.8; }
+.sub-pages h3 { font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-secondary); margin-bottom:8px; }
+.doc-list { list-style:none; display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:6px; }
+.doc-list li {
+    display:flex; align-items:center; justify-content:space-between; padding:6px 12px;
+    border-radius:6px; background:var(--bg); font-size:.88rem; transition:background var(--transition);
+}
+.doc-list li:hover { background:var(--primary-light); }
+.doc-list .date { font-size:.72rem; color:var(--text-secondary); white-space:nowrap; margin-left:8px; }
+
+/* Extra section */
+.extra-section { border:2px dashed var(--primary); background:var(--primary-light); }
+
+/* Back to top */
+.back-top {
+    position:fixed; bottom:24px; right:24px; width:44px; height:44px; border-radius:50%;
+    background:var(--primary); color:#fff; border:none; cursor:pointer; font-size:1.2rem;
+    box-shadow:0 2px 8px rgba(0,0,0,.2); display:none; align-items:center; justify-content:center;
+    z-index:200; transition:opacity var(--transition);
+}
+
+/* Mobile */
+@media (max-width:768px) {
+    .sidebar { transform:translateX(-100%); }
+    .sidebar.open { transform:translateX(0); }
+    .main { margin-left:0; padding:20px 16px; }
+    .doc-list { grid-template-columns:1fr; }
+    .hero h1 { font-size:1.4rem; }
+}
+.menu-toggle {
+    display:none; position:fixed; top:12px; left:12px; z-index:300; width:40px; height:40px;
+    border-radius:50%; background:var(--primary); color:#fff; border:none; font-size:1.2rem;
+    cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.3);
+}
+@media (max-width:768px) { .menu-toggle { display:flex; align-items:center; justify-content:center; } }
+
+/* Print */
+@media print {
+    .sidebar,.controls,.back-top,.menu-toggle { display:none; }
+    .main { margin-left:0; }
+    .category { break-inside:avoid; box-shadow:none; border:1px solid #ddd; }
+}
+
+.hidden { display:none !important; }
+.no-results { text-align:center; padding:40px; color:var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" onclick="toggleSidebar()" aria-label="菜单">☰</button>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h1>Lillian的AIGC知识库</h1>
+        <div class="subtitle">Lillian · 持续更新中</div>
+    </div>
+    <nav class="sidebar-nav">
+        <ul>
+            <li><a href="#aigc-starter">🌟 AIGC新手入门教程<span class="count">51</span></a></li><li><a href="#xiaohongshu">📕 小红书热门资料精选<span class="count">50</span></a></li><li><a href="#prompts">💬 AI提示词<span class="count">14</span></a></li><li><a href="#agents">🤖 AI智能体<span class="count">33</span></a></li><li><a href="#ai-painting">🎨 AI绘画<span class="count">20</span></a></li><li><a href="#ai-video">🎬 AI视频<span class="count">20</span></a></li><li><a href="#ai-writing">✍️ AI写作<span class="count">9</span></a></li><li><a href="#ai-office">💼 AI办公<span class="count">11</span></a></li><li><a href="#ai-coding">💻 AI编程<span class="count">15</span></a></li><li><a href="#ai-education">📚 AI教育<span class="count">1</span></a></li><li><a href="#ai-voice">🎤 AI声音<span class="count">2</span></a></li><li><a href="#ai-music">🎵 AI音乐<span class="count">4</span></a></li><li><a href="#digital-human">👤 AI数字人<span class="count">7</span></a></li><li><a href="#ai-reports">📊 AI研究报告<span class="count">11</span></a></li>
+            <li style="margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;">
+                <a href="#one-person-company">💻 《一人公司》行动指南知识库</a>
+            </li>
+        </ul>
+    </nav>
+    <div class="sidebar-footer">
+        数据来源：飞书 · Lillian的AIGC知识库<br>
+        生成时间：2026-06-15
+    </div>
+</aside>
+
+<main class="main" id="main">
+    <div class="hero">
+        <h1>Lillian的AIGC知识库</h1>
+        <p class="meta">Lillian的AIGC知识库 — 超1000+AI文章教程、500+行业报告、300+变现案例</p>
+        <div class="stats">
+            <span class="stat">📁 14 个分类</span>
+            <span class="stat">📄 248 篇文档</span>
+            <span class="stat">👤 Lillian</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-box" id="search" placeholder="搜索文档标题..." oninput="doSearch()">
+        <button class="btn" onclick="toggleTheme()" title="切换深色/浅色模式">🌓 主题</button>
+        <button class="btn" onclick="expandAll()">展开全部</button>
+        <button class="btn" onclick="collapseAll()">折叠全部</button>
+    </div>
+
+    <div id="no-results" class="no-results hidden">
+        <p>没有找到匹配的文档。试试其他关键词？</p>
+    </div>
+
+    
+        <section class="category" id="aigc-starter">
+            <div class="cat-header">
+                <h2>🌟 AIGC新手入门教程</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/TEfowFa0hi4ytikar4vc14Z9nwH" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">从零开始学习AIGC，涵盖AI概念解析、百问百答、主流工具快速上手教程</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (51)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/DFs5wdk1YiHfNNkACcecO5DAn4c" target="_blank" rel="noopener" title="在飞书中打开">AI概念解析：从入门到精通的36个关键术语指南</a><span class="date">2025-10-09</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/Ops1w5SKQiia8Zke2c9cLZ76nuE" target="_blank" rel="noopener" title="在飞书中打开">AIGC百问百答</a><span class="date">2025-09-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LrRTwegbtiMXukkDDJYc8VjqnNb" target="_blank" rel="noopener" title="在飞书中打开">ChatGPT快速上手教程</a><span class="date">2025-09-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/Kz5gw09eSi1zSjkaAGmckrQnnje" target="_blank" rel="noopener" title="在飞书中打开">Midjourney快速上手教程</a><span class="date">2025-09-17</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/MtVAwatagiJusXkEoY0ce0YxnAf" target="_blank" rel="noopener" title="在飞书中打开">Stable Diffusion快速上手教程</a><span class="date">2025-10-13</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/AZVRwOgp8i2zOKk9hjpcRsX9ngf" target="_blank" rel="noopener" title="在飞书中打开">AI数字与语音初阶段</a><span class="date">2025-10-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/DeqbwnJklivdRfkHJIlcX8b3nPz" target="_blank" rel="noopener" title="在飞书中打开">大厂AIGC实战案例</a><span class="date">2024-07-19</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/JkHFwbMkAig2KjkPDOWcMwxgnWc" target="_blank" rel="noopener" title="在飞书中打开">AI工具集</a><span class="date">2025-09-09</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/ZwxnwNH1BitZZPkbQrZcFVSjnzg?table=tblV5RxyEtQ13VvJ&amp;view=vewke9V9mj" target="_blank" rel="noopener" title="在飞书中打开">AIGC实用资料合集</a><span class="date">2025-09-10</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/RCt8wUDZwiCQWukCX5IcAca7nvg?table=tblfV4yxRnM17Rml&amp;view=vew9XxjppI" target="_blank" rel="noopener" title="在飞书中打开">AI网站精选</a><span class="date">2025-09-09</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/Ic4xwkgxTiQPSNkHEf5cbhminzc?table=tbl5X5AFOmhYIhnc&amp;view=veweRjMq7l" target="_blank" rel="noopener" title="在飞书中打开">AI视频与播客</a><span class="date">2025-09-15</span></li><li><a href="https://lillianwork.github.io/ai-knowledge-base/docs/大模型入门资料/从零开始大模型开发与微调基于PyTorch与ChatGLM.pdf" target="_blank" title="打开本地文件">从零开始大模型开发与微调基于PyTorch与ChatGLM</a><span class="date">2026</span></li><li><a href="https://lillianwork.github.io/ai-knowledge-base/docs/大模型入门资料/一本书读懂AIGC：ChatGPT、AI绘画、智能文明与生产力变革.pdf" target="_blank" title="打开本地文件">一本书读懂AIGC：ChatGPT、AI绘画、智能文明与生产力变革</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/（大模型黑书）基于GPT-3、ChatGPT、GPT-4等 Transformer 架构的自然语言处理(OCR).pdf" target="_blank" title="打开本地文件">基于GPT-3、ChatGPT、GPT-4等Transformer架构的自然语言处理(OCR)</a><span class="date">2026</span></li><li><a href="https://lillianwork.github.io/ai-knowledge-base/docs/大模型入门资料/基于GPT-3、ChatGPT、GPT-4等 Transformer 架构的自然语言处理.pdf" target="_blank" title="打开本地文件">基于GPT-3、ChatGPT、GPT-4等Transformer架构的自然语言处理</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大模型从零到一快速入门.pdf" target="_blank" title="打开本地文件">大模型从零到一快速入门</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大模型入门必看.pdf" target="_blank" title="打开本地文件">大模型入门必看</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大规模语言模型：从理论到实践.pdf" target="_blank" title="打开本地文件">大规模语言模型：从理论到实践</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/【大模型】ChatGPT从入门到精通.pdf" target="_blank" title="打开本地文件">ChatGPT从入门到精通</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大模型应用开发极简入门：基于 GPT-4 和 ChatGPT.pdf" target="_blank" title="打开本地文件">大模型应用开发极简入门：基于GPT-4和ChatGPT</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大模型应用开发极简入门：基于 GPT-4 和 ChatGPT_2024.pdf" target="_blank" title="打开本地文件">大模型应用开发极简入门：基于GPT-4和ChatGPT(2024版)</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/彻底搞懂大模型LLM：提示工程、函数调用、RAG、微调.pdf" target="_blank" title="打开本地文件">彻底搞懂大模型LLM：提示工程、函数调用、RAG、微调</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/一篇搞懂大模型LLM.pdf" target="_blank" title="打开本地文件">一篇搞懂大模型LLM</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大语言模型（LLM）新手入门指南（英译中）-英伟达.pdf" target="_blank" title="打开本地文件">大语言模型LLM新手入门指南（英伟达）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/AGENT AI SURVEYING THE HORIZONS OF MULTIMODAL INTERACTION.pdf" target="_blank" title="打开本地文件">AGENT AI SURVEYING THE HORIZONS OF MULTIMODAL INTERACTION</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/一篇搞明白！模型架构（MoE）全解析.pdf" target="_blank" title="打开本地文件">一篇搞明白！模型架构（MoE）全解析</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/一篇搞明白！MCP、RAG、Agent .pdf" target="_blank" title="打开本地文件">一篇搞明白！MCP、RAG、Agent</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/2026最新大模型常见面试题及答案解析.pdf" target="_blank" title="打开本地文件">2026最新大模型常见面试题及答案解析</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大模型微调：Fine-tuning三种微调方式.pdf" target="_blank" title="打开本地文件">大模型微调：Fine-tuning三种微调方式</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/国内20家公司大模型岗位面试经验汇总.pdf" target="_blank" title="打开本地文件">国内20家公司大模型岗位面试经验汇总</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/Transformer面试题总结.pdf" target="_blank" title="打开本地文件">Transformer面试题总结</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/各个行业的AI大模型：医疗、心理、法律、金融、教育.....pdf" target="_blank" title="打开本地文件">各个行业的AI大模型：医疗、心理、法律、金融、教育</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/DeepSeek从入门到精通.pdf" target="_blank" title="打开本地文件">DeepSeek从入门到精通</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/DeepSeek指导手册从入门到精通.pdf" target="_blank" title="打开本地文件">DeepSeek指导手册从入门到精通</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/DeepSeek+7大热点+全套提示词零基础入门-101页.pdf" target="_blank" title="打开本地文件">DeepSeek+7大热点+全套提示词零基础入门</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/普通人如何抓住DeepSeek红利.pdf" target="_blank" title="打开本地文件">普通人如何抓住DeepSeek红利</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/十大时间序列预测模型最强总结手册.pdf" target="_blank" title="打开本地文件">十大时间序列预测模型最强总结手册</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/十大时间序列预测模型最强总结手册 (无图版).pdf" target="_blank" title="打开本地文件">十大时间序列预测模型最强总结手册（无图版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/十大数据预处理方法总结.pdf" target="_blank" title="打开本地文件">十大数据预处理方法总结</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/6个机器学习的核心算法.pdf" target="_blank" title="打开本地文件">6个机器学习的核心算法</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/掌握AI项目成功的10个关键步骤.pdf" target="_blank" title="打开本地文件">掌握AI项目成功的10个关键步骤</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/一篇搞懂大模型LLM.md" target="_blank" title="打开本地文件">📝 一篇搞懂大模型LLM（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/各个行业的AI大模型：医疗、心理、法律、金融、教育.....md" target="_blank" title="打开本地文件">📝 各个行业的AI大模型（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/十大数据预处理方法总结.md" target="_blank" title="打开本地文件">📝 十大数据预处理方法总结（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/十大时间序列模型最强总结手册.md" target="_blank" title="打开本地文件">📝 十大时间序列预测模型最强总结手册（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/十大时间序列模型最强总结手册 (无图版).md" target="_blank" title="打开本地文件">📝 十大时间序列预测模型最强总结手册-无图版（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/6个机器学习的核心算法.md" target="_blank" title="打开本地文件">📝 6个机器学习的核心算法（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/掌握AI项目成功的10个关键步骤.md" target="_blank" title="打开本地文件">📝 掌握AI项目成功的10个关键步骤（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/【图文】大模型算法岗常见面试题及答案解析.md" target="_blank" title="打开本地文件">📝 大模型算法岗常见面试题及答案解析（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/大型语言模型的11种高效微调方法.md" target="_blank" title="打开本地文件">📝 大型语言模型的11种高效微调方法（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/高级RAG技术.md" target="_blank" title="打开本地文件">📝 高级RAG技术（MD版）</a><span class="date">2026</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="xiaohongshu">
+            <div class="cat-header">
+                <h2>📕 小红书热门资料精选</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/QWm1wsGBsi1bSTkZUKOcftRBntO" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">小红书平台热门AI资料汇总，含教程文档、PDF、案例拆解、行业工作流等40+资料</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (50)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/QZ3SwBTcOiTYPnkYpqQckEa7nrb?from=space_search" target="_blank" rel="noopener" title="在飞书中打开">DeepSeek V4 从零基础到精通学习手册</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/YYPMwUGRYirTNckDV3rcEN2bnvb?from=space_search" target="_blank" rel="noopener" title="在飞书中打开">AI自媒体：Deepseek公众号写作教程</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/AJSBwJkMOiXc66kprsOc5C5Yn5d" target="_blank" rel="noopener" title="在飞书中打开">DeepSeek处理Excel数据保姆级教程</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/DMDdwZI8Uib1xTkoHN5cZx4Inic" target="_blank" rel="noopener" title="在飞书中打开">Word接入DeepSeek保姆级教程</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/BWEkwLyoNiCb26kegJOcNE6snsc" target="_blank" rel="noopener" title="在飞书中打开">DeepSeek接入微信保姆级教程</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/F6zrwJCQGiVpGUkHVescwsxqn2c" target="_blank" rel="noopener" title="在飞书中打开">使用DeepSeek写小红书保姆级教程</a><span class="date">2025</span></li><li><a href="https://geekbang.feishu.cn/wiki/VsM4wPH2oilOqPk0vUdc4QvMnkb" target="_blank" rel="noopener" title="在飞书中打开">法律人DeepSeek指南</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/WeWmwERHsiA9WjkI09NcdpSvnje?from=space_search" target="_blank" rel="noopener" title="在飞书中打开">Gemin3 pro从零基础到精通学习手册</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/QWm1wsGBsi1bSTkZUKOcftRBntO?from=space_search" target="_blank" rel="noopener" title="在飞书中打开">Nano Banana手册</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/QWm1wsGBsi1bSTkZUKOcftRBntO" target="_blank" rel="noopener" title="在飞书中打开">100个Nano Banana案例</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/QWm1wsGBsi1bSTkZUKOcftRBntO?from=space_search" target="_blank" rel="noopener" title="在飞书中打开">Claude Code从入门到精通-v2.0.0</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/SmrPwiWEsiSoknk2r6DcNZUunpb" target="_blank" rel="noopener" title="在飞书中打开">Manus 学习指南</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/QWm1wsGBsi1bSTkZUKOcftRBntO?from=space_search" target="_blank" rel="noopener" title="在飞书中打开">Manus内测码申请教程完整版</a><span class="date">2025</span></li><li><a href="https://dvsbo9nsg19.feishu.cn/wiki/OyDpw9wJViZfwskLZCAcTcQznod" target="_blank" rel="noopener" title="在飞书中打开">GPT-4o 风格提示词案例大全</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/FdmCwppmcicq4WkI5NjcisOKnsg" target="_blank" rel="noopener" title="在飞书中打开">艾文团队：GPT-4o更新同步</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/BVLmwLNsfijrwlkUhEncmPvrngf" target="_blank" rel="noopener" title="在飞书中打开">GPT-5全网最细指南（持续更新）</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/E37FwWfySisFAfkxvNfclooQnPf" target="_blank" rel="noopener" title="在飞书中打开">行业分析大师-GPT+麦肯锡</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/Ber4wblPBiH9LQkDzycc51bWn3d" target="_blank" rel="noopener" title="在飞书中打开">用GPT快速阅读100本书/天</a><span class="date">2025</span></li><li><a href="https://www.yuque.com/yiyezhiqiu-rrhgv/ewgsti" target="_blank" rel="noopener" title="在飞书中打开">AI提示词合集</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/QR01w7kmCi43ODktVV6cLyiDn7f" target="_blank" rel="noopener" title="在飞书中打开">AI做古诗词绘本</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/CN8cwtPtLizJsckkJA9cXmfCnae" target="_blank" rel="noopener" title="在飞书中打开">AI拆书稿提示词</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/DeqbwnJklivdRfkHJIlcX8b3nPz" target="_blank" rel="noopener" title="在飞书中打开">大厂AIGC实战案例</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/YnLzwkFLDi5xb0knnEmcxpaqnW1" target="_blank" rel="noopener" title="在飞书中打开">AI玄学赛道指南</a><span class="date">2025</span></li><li><a href="https://bytedance.larkoffice.com/docx/CeDqdwhuHoimLJx2m18cNjS4nKf" target="_blank" rel="noopener" title="在飞书中打开">豆包使用指南</a><span class="date">2025</span></li><li><a href="https://bytedance.larkoffice.com/docx/N1MbdcLuqohCJexjBv0cjuajnZb" target="_blank" rel="noopener" title="在飞书中打开">豆包使用宝典</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/EmutwBxbqiWeezkAJowcH4e6nt4" target="_blank" rel="noopener" title="在飞书中打开">全网最全Sora保姆级教程</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/Fu7Kw17pliQv0tkHpZLc7lQ7nae" target="_blank" rel="noopener" title="在飞书中打开">Coze搭建养生赛道智能体</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/JpRcwPHgtiXn5ekBcDpcXVN9ncf" target="_blank" rel="noopener" title="在飞书中打开">Coze扣子平台使用教程</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/D1bzwqq3KijDT1k87tTcmSc6nMh" target="_blank" rel="noopener" title="在飞书中打开">扣子(Coze)搭建AI自动批改作业教师必备工作流</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/docx/OVNmdDBPPovIrTxHkyXcUTALnqe" target="_blank" rel="noopener" title="在飞书中打开">扣子空间的学习手册</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/AGi8waQpxixhCfkacd5cI1JonKh" target="_blank" rel="noopener" title="在飞书中打开">扣子空间MCP-最全实操案例提示词</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/QWm1wsGBsi1bSTkZUKOcftRBntO" target="_blank" rel="noopener" title="在飞书中打开">Coze扣子案例技术拆解-81套</a><span class="date">2025</span></li><li><a href="https://xuqiwei1986.feishu.cn/wiki/Fc5PwcbB8ivq4bksiMWc0RfVnab" target="_blank" rel="noopener" title="在飞书中打开">如何在ComfyUI从零开始搭建一套商业工作流</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/D1bzwqq3KijDT1k87tTcmSc6nMh" target="_blank" rel="noopener" title="在飞书中打开">AI一人公司行动指南</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/IKlVwZIeIi9drika4vWcUG3dn0y" target="_blank" rel="noopener" title="在飞书中打开">工作流批量出图（健康养生）</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/OuYiwNsvaixbrMkqHTGci4GYnbe" target="_blank" rel="noopener" title="在飞书中打开">工作流批量出图（宠物行业）</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/Z02awlNowijQThkA06jcqI52n4g" target="_blank" rel="noopener" title="在飞书中打开">工作流批量出图（清醒奶奶）</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/Vz23woUF7igMv5kNUxecjLE1nqg" target="_blank" rel="noopener" title="在飞书中打开">工作流批量出图（美妆行业）</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/Y2ajwX0SlimOl0khdQ1cUJbvnYd" target="_blank" rel="noopener" title="在飞书中打开">工作流批量出图（金融行业）</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/NGGOwmigkiXND3kVxrgcIjQgn2e" target="_blank" rel="noopener" title="在飞书中打开">工作流批量出图（历史行业）</a><span class="date">2025</span></li><li><a href="https://mermaid.nodejs.cn/syntax/flowchart.html" target="_blank" rel="noopener" title="在飞书中打开">Kimi画20种流程图提示词</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/V6Iyw9XAbi4yH6kFvTWcZhnCnkg" target="_blank" rel="noopener" title="在飞书中打开">【公众号】将KIMI接入微信公众号</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/H8VLwDuLNiiDPDkECzCcxzt9nsh" target="_blank" rel="noopener" title="在飞书中打开">《AI写小说从零基础到精通》学习手册</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/TmREwEKtziCeSPkNo1qcx5kpnZg" target="_blank" rel="noopener" title="在飞书中打开">《可灵从零基础到精通》学习手册</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/WHFoww1ZhiURevkL2wDckLhJngf" target="_blank" rel="noopener" title="在飞书中打开">【变现】AI让老照片动起来</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/P1Vsw3H2Diho5WkkH5EcFnGNnIb" target="_blank" rel="noopener" title="在飞书中打开">【案例拆解】AI我中华工作流拆解与分析</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/KsHrwHmS5ik6sQkxtnUc45k6nvb" target="_blank" rel="noopener" title="在飞书中打开">100个"去除AI味儿"的提示词</a><span class="date">2025</span></li><li><a href="https://dvsbo9nsg19.feishu.cn/wiki/SXSuwzZ0tiSHVvkswvjccpVBn0d" target="_blank" rel="noopener" title="在飞书中打开">AI中文字体生成技巧(100+提示词案例)</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/UgUBwPkSEiO1znkVGfEczgJZntf" target="_blank" rel="noopener" title="在飞书中打开">Ima知识库工具指南</a><span class="date">2025</span></li><li><a href="https://tauacgr5lqv.feishu.cn/wiki/PyzCw7mGSiQ566kxXp4cCSCunOh" target="_blank" rel="noopener" title="在飞书中打开">AI音乐流派与风格关键词</a><span class="date">2025</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="prompts">
+            <div class="cat-header">
+                <h2>💬 AI提示词</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">提示词工程学习资料，含网站合集、官方指南、场景提示词、去AI味提示词等</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (14)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener" title="在飞书中打开">AI提示词网站合集</a><span class="date">2025-02-11</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener" title="在飞书中打开">全网精选Prompt网站</a><span class="date">2025-08-22</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener" title="在飞书中打开">小白入门必看：提示词基础认识（初版）</a><span class="date">2025-09-09</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener" title="在飞书中打开">大模型官方提示词指南</a><span class="date">2025-02-11</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener" title="在飞书中打开">大模型提示词合集</a><span class="date">2025-02-11</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener" title="在飞书中打开">场景提示词合集</a><span class="date">2025-02-11</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener" title="在飞书中打开">Prompt其他资源合集</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/BYUqwNVRQihCj4k36KOca9uPncA" target="_blank" rel="noopener" title="在飞书中打开">去除AI味提示词合集</a><span class="date">2025-02-11</span></li><li><a href="docs/大模型入门资料/大模型提示词工程分类.pdf" target="_blank" title="打开本地文件">大模型提示词工程分类</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/14种常见的Prompt策略.pdf" target="_blank" title="打开本地文件">14种常见的Prompt策略</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/AI大模型提示词技巧.pdf" target="_blank" title="打开本地文件">AI大模型提示词技巧</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/大模型提示词工程分类.md" target="_blank" title="打开本地文件">📝 大模型提示词工程分类（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/14种常见的Prompt策略.md" target="_blank" title="打开本地文件">📝 14种常见的Prompt策略（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/AI大模型提示词技巧.md" target="_blank" title="打开本地文件">📝 AI大模型提示词技巧（MD版）</a><span class="date">2026</span></li></ul>
+            </div>
+        </section>
+                        <section class="category" id="agents">
+            <div class="cat-header">
+                <h2>🤖 AI智能体</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/XdMvwRjw1iKlzukZzJAc6lJtnif" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">Agent大趋势与各平台从零到精通：Coze、n8n、GPTs、Manus、Claude Code等20个工具。以下内容整理自共研社AIGC知识库，已清洗排版并重新归类。</p>
+
+            <div class="sub-pages">
+                <h3>📋 工具目录与详情 (33)</h3>
+                <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:12px;">点击标题展开/折叠详情。📄 = 文章页 | 📁 = 目录页</p>
+
+                <div class="sub-pages" style="margin-bottom:20px;">
+                    <h3>📚 补充资料：大模型入门PDF/MD (13 篇)</h3>
+                    <ul class="doc-list"><li><a href="docs/大模型入门资料/AgentSkills（ClaudeSkills）详细攻略.pdf" target="_blank" title="打开本地文件">AgentSkills（ClaudeSkills）详细攻略</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/AI Agent智能体架构设计12条关键原则.pdf" target="_blank" title="打开本地文件">AI Agent智能体架构设计12条关键原则</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/AI Agent：四大核心能力详解与技术演进.pdf" target="_blank" title="打开本地文件">AI Agent：四大核心能力详解与技术演进</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/吴恩达总结的4种Agent设计模式.pdf" target="_blank" title="打开本地文件">吴恩达总结的4种Agent设计模式</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/AgentSkill完全指南.pdf" target="_blank" title="打开本地文件">AgentSkill完全指南</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/5种Agent模式.pdf" target="_blank" title="打开本地文件">5种Agent模式</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/人工智能Agent的基本原理与架构.pdf" target="_blank" title="打开本地文件">人工智能Agent的基本原理与架构</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/8种主流Agent框架.pdf" target="_blank" title="打开本地文件">8种主流Agent框架</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/Agent进入深水区后的十大趋势.pdf" target="_blank" title="打开本地文件">Agent进入深水区后的十大趋势</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/RAG聊天机器人 VS AI Agent：哪个更高效？.pdf" target="_blank" title="打开本地文件">RAG聊天机器人 VS AI Agent：哪个更高效？</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/md/人工智能Agent的基本原理与架构.md" target="_blank" title="打开本地文件">📝 人工智能Agent的基本原理与架构（MD版）</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/md/Agent进入深水区后的十大趋势.md" target="_blank" title="打开本地文件">📝 Agent进入深水区后的十大趋势（MD版）</a><span class="date">2026</span></li>
+<li><a href="docs/大模型入门资料/md/RAG聊天机器人 VS AI Agent：哪个更高效？.md" target="_blank" title="打开本地文件">📝 RAG聊天机器人 VS AI Agent：哪个更高效？（MD版）</a><span class="date">2026</span></li></ul>
+                </div>
+
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-01')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/IvgxwO474iNlSFkS1XEc3YddnP9" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">01. 通用智能体对比</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-01-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-01-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🧮<br>通用智能体对比​<br>Gybbb<br>陶克银<br>2025年11月4日修改</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-02')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/Z1bOw63Aaie2fykQa3VcTtLQndb" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">02. 基础概念学习指南</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-02-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-02-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>👉<br>基础概念学习指南​<br>Gybbb<br>陶克银<br>2025年9月29日修改<br>宫格<br>显示设置<br>上传<br>新建<br>名称<br>1、第一个智能体<br>最近修改于 2025年10月9日<br>2、智能体架构<br>最近修改于 2025年10月9日<br>3、插件<br>最近修改于 2025年10月9日<br>4、工作流<br>最近修改于 2025年10月12日<br>5、RAG与知识库<br>最近修改于 2025年10月12日<br>6、记忆<br>最近修改于 2025年10月12日<br>7、流程化SOP<br>最近修改于 2025年10月12日<br>8、认知<br>最近修改于 2025年10月12日</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-03')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/BuCHwwHCYiwfRIkRVYacCm9Qn7e" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">03. 理论知识学习指南</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-03-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-03-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🖋️<br>理论知识学习指南​<br>Gybbb<br>陶克银<br>2025年9月29日修改<br>宫格<br>显示设置<br>上传<br>新建<br>名称<br>（一）Agent-破局意义<br>最近修改于 2025年10月10日<br>（二）Agent-基本介绍<br>最近修改于 2025年10月12日<br>（三）RAG-Agent“记忆” 与 “规划”<br>最近修改于 2025年10月12日<br>（四）MCP-Agent工具调用革命<br>最近修改于 2025年10月10日<br>（五）Agent-学习路径<br>最近修改于 2025年10月10日<br>LLM智能体可视化指南<br>最近修改于 2025年10月10日<br>四种 Agent 设计范式（通俗易懂版）-- 吴恩达最新演讲<br>最近修改于 2025年8月25日<br>AI Agent 的发展：能力、技术架构和软硬件形态<br>最近修改于 2025年8月25日<br>上下文工程：别把窗塞满越多越糟！用写筛压隔四步，警惕投毒干扰混淆冲突，把噪声挡窗外<br>最近修改于 2025年8月25日<br>Windsurf团队科普Agent：不是什么都叫智能体！<br>最近修改于 2025年8月25日<br>多智能体系统的八个问题和八个原则<br>最近修改于 2025年8月25日<br>从 GPTs 聊到 Agent、LLMOps 以及开源的新机会<br>最近修改于 2025年8月25日<br>实用至上：智能体/Agent 是什么<br>最近修改于 2025年8月25日<br>万字长文！何谓Agent，为何Agent？<br>最近修改于 2025年8月25日<br>AI智能体(Agent)能力定义与分级：L0-L5，揭秘AI智能体的进化之路<br>最近修改于 2025年8月25日</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-04')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/WeWmwERHsiA9WjkI09NcdpSvnje" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">04. Gemin3 pro从零基础到精通学习手册</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-04-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-04-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🟠<br>Gemin3 pro从零基础到精通学习手册​<br>3月27日修改</p>
+<p>本文讨论了Gemin3 pro学习手册以及多个不同领域的任务需求，涵盖AI模型介绍、使用方式、提问方法论、各类型应用案例及代码制作等内容。关键要点包括：​<br>1.<br>Gemin3 pro介绍 ：谷歌2025年11月发布的最新AI模型，逻辑推理强、能处理多类型信息、执行力强，属顶尖水平，已加入谷歌全家桶服务。​<br>2.<br>使用方式 ：可通过Google Gemini（https://gemini.google.com/ ）官网和Google AI Studio（https://aistudio.google.com/ ）开发平台使用。​<br>3.<br>提问方法论 ：结构化提示词由标识符与属性词构成，标识符常用Markdown格式，属性词有Background、Role等多种模块。​<br>4.<br>应用案例 ：包含文本分析、文本创作、图片分析、反推图片、代码能力等多方面案例，如文案拆解、公众号文章改写、图片描述、AI绘画提示词反推、各类网站和动画制作等。​<br>5.<br>代码制作要求 ：如制作学习写字笔划的AI学习工具网站、小红书封面排版工具、教学原理动画、个人传记网站、AI术语交互式学习网站、PPT演示网页等，各有不同技术栈、交互逻辑、视觉风格和功能要求。​<br>6.<br>叙事图卡规则 ：需生成单一完整的SVG代码，严格遵守布局和风格规则，包括分区、叙事元素、顶部布局、核心内容、页脚信息和交互性等要求。​<br>7.<br>单词配对消消乐游戏 ：做离线网页游戏，背景浅黄色，有大标题，泡泡3D立体、颜色随机，单词为剑桥雅思词汇，点击匹配泡泡消失，完成显示挑战成功和用时，可继续挑战。 ​<br>一、基本介绍​<br>Gemini 3 Pro 是谷歌（Google）在 2025年11月 刚刚发布的最新一代人工智能模型。​<br>为了让你更容易理解，我们可以把它想象成一个“全面进化的大脑” 。以下是它的几个核心特点，用大白话来说就是：​<br>1. 它学会了“深思熟虑”​<br>以前的 AI 说话反应很快，但有时候容易嘴瓢或出错。Gemini 3 Pro 最大的升级是拥有了更强的逻辑推理能力。遇到复杂问题时，它不会急着瞎回答，而是会像人一样先在脑子里“思考”一下（这一过程被称为 Thinking 或 Deep Think），理清逻辑后再给你答案。这让它在解数学题、写代码或分析难题时变得更靠谱。​<br>2. 它是真正的“全能选手”​<br>它不仅仅能读懂文字，还能看懂图片、听懂音频、看懂视频，甚至能直接读懂你上传的一大堆复杂文件（比如PDF或整个代码库）。它的“眼睛”和“耳朵”比以前更灵敏了，能处理的信息量也更大。​<br>3. 它更像一个“智能管家”​<br>它不仅能陪你聊天，还能帮你干活。它的“执行力”变强了（也就是所谓的 Agentic 能力）。比如你想做一个简单的软件或者做个复杂的旅行计划，它不仅能出主意，还能帮你写代码、调用工具，一步步把任务落实，而不只是纸上谈兵。​<br>4. 它的水平如何？​<br>在目前的 AI 圈子里，它属于顶尖水平。根据最新的测试数据，它在编程、逻辑推理等很多方面都超越了之前的模型（比如 Gemini 2.5 系列），是目前市面上最聪明的 AI 之一。​<br>简单总结：​<br>Gemini 3 Pro 就是谷歌现在最聪明、最会思考、最能干活的 AI 助手，现已加入谷歌的全家桶服务中。​<br>二、使用方式​</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-05')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/CYL5wxHJSiJWqrkVlSWceGscnle" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">05. Coze从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-05-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-05-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🔴<br>Coze从零基础到精通​<br>Gybbb<br>林艾文Ivan<br>2025年9月18日修改<br>列表<br>显示设置<br>上传<br>新建<br>名称<br>所有者<br>修改时间<br>教程：Coze / 扣子<br>李世杰<br>2025年8月25日<br>coze案例大全<br>李世杰<br>2025年10月17日<br>🧰从零基础到精通：Coze教程完整版<br>李世杰<br>2025年9月10日<br>从0到1学会Coze智能体<br>李世杰<br>2025年8月27日<br>📎<br>AI智能体应用趋势及常见工具使用教程分享<br>⚡<br>Gemin3 pro零基础学习手册 | 特性及使用场景解读<br>本文暂未引用其它文档<br>1<br>1<br>1<br>人点赞</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-06')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/HisTwsV5Oin8VWkZvnCcLMLInYe" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">06. n8n从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-06-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-06-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🔵<br>n8n从零基础到精通​<br>Gybbb<br>陶克银<br>2025年9月29日修改<br>列表<br>显示设置<br>上传<br>新建<br>名称<br>所有者<br>修改时间<br>告别手动拖拽！AI 3分钟生成完整n8n工作流<br>李世杰<br>2025年8月25日<br>n8n 全流程教程 | 一键实现从 YouTube 视频到公众号文案！<br>李世杰<br>2025年11月13日<br>独家！用开源n8n监控公众号，自动更新文章到私有知识库【附赠：超绝工作流】｜喂饭级教程<br>李世杰<br>2025年8月25日<br>30分钟用n8n自建AI知识库，告别ChatGPT瞎编<br>李世杰<br>2025年8月25日<br>让博客内容像流水线一样更新：n8n 批量自动发布WordPress全攻略<br>李世杰<br>2025年8月25日<br>5分钟搭建n8n+飞书自动化，告别重复劳动<br>李世杰<br>2025年8月25日<br>微信群聊一键整理！n8n+AI自动生成日报<br>李世杰<br>2025年8月25日<br>90%的n8n用户不知道：这17个功能太强了<br>李世杰<br>2025年8月25日<br>错过血亏！我从2598个模板中，挖出了这10个神级AI工作流，让效率飙升～【源文件已打包】<br>李世杰<br>2025年8月25日<br>当Gemini CLI遇见n8n：免费撸Google顶级模型的玩法<br>李世杰<br>2025年8月25日<br>当Gemini CLI遇见n8n：免费撸Google顶级模型的玩法<br>李世杰<br>2025年8月25日<br>用n8n做AI工作流驱动网站出海赚美金3：搭建「SEO策略优化」AI Agent<br>李世杰<br>2025年8月25日<br>3分钟白嫖！HuggingFace部署n8n吊打收费服务<br>李世杰<br>2025年8月25日<br>30分钟用n8n自建AI知识库，告别ChatGPT瞎编<br>李世杰<br>2025年8月25日<br>还在手动搬运公众号内容？教你 3 步用 n8n 批量自动化迁移文案到 WordPress 自建站点！<br>李世杰<br>2025年8月25日<br>从「图文流水线」到“一键多场景”视频：n8n × ComfyUI 自动化升级实战<br>李世杰<br>2025年8月25日<br>小报童阅读太痛苦？我用n8n + Crawl4AI一键下载所有文章<br>李世杰<br>2025年8月25日<br>n8n Webhook 安全指南：三种认证方式保护你的工作流<br>李世杰<br>2025年8月25日<br>3步解决n8n被薅羊毛：Turnstile验证拯救你的API账单<br>李世杰<br>2025年8月25日<br>别再复制粘贴n8n配置了！这3种方法救你命<br>李世杰<br>2025年8月25日<br>听说你想找远程工作？这里有个LinkedIn岗位自动化搜索与匹配的n8n工作流要不要来学一下<br>李世杰<br>2025年8月25日<br>5分钟替代3小时！飞书+n8n自动化，小红书高质量图文批量生产<br>李世杰<br>2025年8月25日<br>从4000+ n8n模板中，精选了24个「AI 出海营销Agent」涵盖SEO 等八大模块<br>李世杰<br>2025年8月25日<br>学习 n8n，从搭建你的第一个 AI 工作流开始！<br>李世杰<br>2025年8月25日</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-07')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/LIzLw74FriyH3mkH75Icd6i8nKg" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">07. GPTs从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-07-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-07-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🟤<br>GPTs从零基础到精通​<br>Gybbb<br>陶克银<br>2025年9月29日修改<br>列表<br>显示设置<br>上传<br>新建<br>名称<br>所有者<br>修改时间<br>像高手一样编写 GPT：从基础到实践，学习使用 GPT 的 Action<br>李世杰<br>2025年10月28日<br>逆向思维GPTs 的 prompt<br>李世杰<br>2025年8月25日<br>GPTs：镜子画布小游戏<br>李世杰<br>2025年8月25日<br>儿童汉语词典-GPTs Action 实战<br>李世杰<br>2025年8月25日<br>金句明信片（壁纸）-GPT 辅助制作<br>李世杰<br>2025年8月25日<br>GPTs 从入门、进阶、实践到防护的万字教程<br>李世杰<br>2025年8月26日<br>制作成语小游戏-GPTs Action 实战<br>李世杰<br>2025年8月26日<br>&quot;记忆图卡&quot; 小游戏-GPTs 实战<br>李世杰<br>2025年8月26日<br>诗词大百科-GPT Action实战<br>李世杰<br>2025年8月27日</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-08')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/PSnswGBIPifrgakAXedc6jAdn2d" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">08. Manus从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-08-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-08-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>⚪<br>Manus从零基础到精通​<br>Gybbb<br>陶克银<br>2025年9月29日修改<br>列表<br>显示设置<br>上传<br>新建<br>名称<br>所有者<br>修改时间<br>Manus 上帝之手<br>李世杰<br>2025年8月25日<br>一手体验首款通用Agent产品Manus - 唯有惊叹<br>李世杰<br>2025年8月25日<br>赛博佛祖没说的 5 个 Manus 细节操作：拿到邀请码后我发现了这些交互体验<br>李世杰<br>2025年8月25日<br>manus真实评测系列：全程无托管自动剪辑音频<br>李世杰<br>2025年8月25日<br>MCP协议详解：复刻Manus全靠它，为什么说MCP是Agent进化的一大步？<br>李世杰<br>2025年8月25日<br>Manus开源复刻框架OWL，测评和使用教程来了！<br>李世杰<br>2025年8月25日<br>Manus 内部的 Context 工程经验（精校、高亮要点）<br>李世杰<br>2025年8月25日</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-09')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/G8D1wfEeOiXQjzkOitwcqDpfnBg" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">09. flowith从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-09-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-09-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🟡<br>flowith从零基础到精通​<br>Gybbb<br>陶克银<br>2025年9月29日修改<br>列表<br>显示设置<br>上传<br>新建<br>名称<br>所有者<br>修改时间<br>flowith 指南｜画布是 AI 的旷野啊<br>李世杰<br>2025年8月25日<br>🕵最全通用 AGENT 案例合集 1.0<br>李世杰<br>2025年8月25日<br>Flowith AI，解锁下一代「知识交易市场」<br>李世杰<br>2025年8月25日<br>Agent Neo: Flowith的 stage 2, 逐渐有大将风范<br>李世杰<br>2025年8月25日<br>54个Case，54只猫咪！Flowith Neo 用实力证明：Stop Chatting, Start Creating.<br>李世杰<br>2025年8月25日<br>首个无限Agent Neo实测，猛到头皮发麻<br>李世杰<br>2025年8月25日<br>万字长文打造flowith保姆级教程！快速上手 flowith，看这一篇就够了！<br>李世杰<br>2025年8月25日<br>flowith，我好像多长了个外挂脑子<br>李世杰<br>2025年8月25日<br>🕵最全 AGENT 案例合集 2.0<br>李世杰<br>2025年8月27日</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-10')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/LcmkwoxLtixiyskXkrOcvYUFnGc" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">10. Lovart.ai从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-10-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-10-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🟢<br>Lovart.ai从零基础到精通​<br>Gybbb<br>陶克银<br>薯条<br>5月18日修改<br>宫格<br>显示设置<br>上传<br>新建<br>名称<br>今天我必须炸裂一下！全球第一个AI设计Agent 没想到这么强！！！<br>最近修改于 5月27日 11:09<br>不看这篇深度拆解，你永远不知道Lovart AI有多可怕<br>最近修改于 5月27日 11:09<br>这才是设计师需要的智能体。Lovart在传递设计的本质：不是美工，而是思考。<br>最近修改于 2025年8月25日<br>从Lovart的预设提示词，看懂专业级Design Agent的底层逻辑！<br>最近修改于 5月27日 11:08<br>深度产品测评丨拒绝概念营销，Lovart是否称得上设计Agent<br>最近修改于 5月27日 11:01<br>适合设计Agent的提示词，能让Lovart作图更好看更高效！<br>最近修改于 5月17日 14:23<br>为什么我用Lovart设计不出灵魂？<br>最近修改于 2025年8月25日<br>Lovart 火了？实测下来还真不是营销！<br>最近修改于 2025年8月25日<br>实测Lovart，当设计不再是营销物料，而是协作起点<br>最近修改于 2025年8月25日<br>号称更懂中国设计师的Lovart国内版到底怎样？我熬夜体验了3天，结果...<br>最近修改于 2025年8月25日<br>Lovart 国内版本上线！提示词大全教程<br>最近修改于 5月17日 16:33<br>设计类智能体Lovart国内版——星流Agent 来啦！<br>最近修改于 5月17日 16:35<br>Lovart正式发布！那个在硅谷爆火的AI设计团队，全面开放注册！（含八大实测案例）<br>最近修改于 5月19日 14:15<br>JPG 变成 PSD Lovart 这次真把设计师干沉默了！<br>最近修改于 5月27日 10:59<br>Lovart从零基础到精通学习手册<br>最近修改于 5月27日 10:59<br>Lovart+Image2生图王炸组合—实操教程手册完整版<br>最近修改于 5月27日 10:59<br>全行业通用教程！Lovart从零基础到精通实操手册<br>最近修改于 5月26日 15:53</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-11')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/U6uTwxy5tiY6fNks1Akcjcdkntf" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">11. Skywork 天工从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-11-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-11-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🟣<br>Skywork 天工从零基础到精通​<br>Gybbb<br>陶克银<br>2025年9月29日修改<br>列表<br>显示设置<br>上传<br>新建<br>名称<br>所有者<br>修改时间<br>Manus类Agent新王登顶！无需邀请码，开箱即用<br>李世杰<br>2025年8月25日<br>【实测】这款国产AI智能体让我两眼放光，一句话生成论文、PPT、Excel、网站、播客，逢人就按头推荐！<br>李世杰<br>2025年8月25日</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-12')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/M2CxwTmLeiA078kCcLccwd84nLe" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">12. MiniMax Agent从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-12-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-12-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>⚫<br>MiniMax Agent从零基础到精通​<br>Gybbb<br>陶克银<br>2025年9月29日修改<br>列表<br>显示设置<br>上传<br>新建<br>名称<br>所有者<br>修改时间<br>160行需求文档，32分钟变成可玩游戏，我见证了AI开发的恐怖实力<br>李世杰<br>2025年8月25日<br>我用MiniMax Agent做PPT，实在太爽了<br>李世杰<br>2025年8月25日<br>可能是比Lovable还好的Vibe Coding产品-MiniMax Agent体验<br>李世杰<br>2025年8月25日<br>仅一句提示词！这个AI语音模型让三体“纸片人”活过来<br>李世杰<br>2025年8月25日</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-13')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/Nh2EwXs0ui0n1Jk3DJIcWSLKngg" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">13. OpenClaw从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-13-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-13-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🟥<br>OpenClaw从零基础到精通​<br>晴<br>3月5日修改<br>OpenClaw快速上手指南​<br>📸<br>OpenClaw快速上手指南 | 安装配置及与飞书打通教程<br>🛠️<br>Hermes Agent 零基础部署教程 | 30 分钟双平台上手<br>⚡<br>Gemin3 pro零基础学习手册 | 特性及使用场景解读<br>📎<br>AI智能体应用趋势及常见工具使用教程分享<br>📆<br>小红书热门AI资料精选 | 含多工具教程及行业案例<br>🔵<br>Codex科普及使用指南 - 新模型上线与下载安装说明<br>OpenClaw快速上手指南：从零基础-精通学习手册</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-14')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/LnZrwO2LyiiTKAkhCwMcYxtlnyc" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">14. Skills从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-14-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-14-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🍈<br>Skills从零基础到精通​<br>dlw<br>3月17日修改<br>📎<br>AI智能体应用趋势及常见工具使用教程分享<br>🛠️<br>Hermes Agent 零基础部署教程 | 30 分钟双平台上手<br>🔌<br>Codex科普及使用指南 - 新模型上线与下载安装说明<br>⚡<br>Gemin3 pro零基础学习手册 | 特性及使用场景解读<br>🎪<br>Obsidian学习手册 | Notebook Navigator插件安装及使用教程<br>📸<br>OpenClaw快速上手指南 | 安装配置及与飞书打通教程<br>本文暂未引用其它文档</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-15')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/IZjdwZZXmihn14khm58c7qhDnFN" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">15. Claude code</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-15-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-15-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🍇<br>Claude code​<br>薯条<br>晴<br>6月2日修改<br>宫格<br>显示设置<br>上传<br>新建<br>名称<br>Claude Code 简介<br>最近修改于 3月30日 15:49<br>Claude Code 安装与使用<br>最近修改于 3月30日 15:51<br>Claude Code 如何工作<br>最近修改于 3月30日 15:53<br>Claude Code API 配置<br>最近修改于 3月30日 15:54<br>Coding Plan<br>最近修改于 3月30日 14:37<br>Claude Code 第一次使用<br>最近修改于 3月30日 14:44<br>VS Code 安装 Claude Code<br>最近修改于 3月30日 14:54<br>Claude Code 项目初始化<br>最近修改于 3月30日 15:01<br>Claude Code 交互模式<br>最近修改于 3月30日 14:34<br>Claude Code 操作说明<br>最近修改于 3月30日 15:55<br>Claude Code 基础用法<br>最近修改于 3月30日 17:51<br>Claude Code MCP<br>最近修改于 3月30日 15:27<br>Claude Code 子代理（Subagent）<br>最近修改于 3月30日 16:05<br>Claude Code 插件<br>最近修改于 3月30日 16:22<br>Agent Skills（智能体技能）<br>最近修改于 3月30日 16:52<br>别再手动整理笔记了！Obsidian接入Claude Code，全自动化知识库<br>最近修改于 4月6日 20:13<br>Obsidian + NotebookLM + Gemini搭一套「学习外挂」，信息吸收效率直接起飞<br>最近修改于 4月6日 20:14<br>100个实用Skills安装合集，可以直接上手，易操作！完整版教程！<br>最近修改于 4月10日 21:18<br>飞书 CLI 开源！我用 Claude Code 搭了一套全自动爆款内容流程（附手把手教程）<br>最近修改于 4月9日 16:52<br>飞书开放CLI：一键接入Claude Code、OpenClaw，最新教程来了<br>最近修改于 4月9日 16:40<br>Claude 接入DeepSeek-V4（保姆级教程）<br>最近修改于 4月30日 10:55</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-16')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/P5NYwVlGMiOmkak0LoYcMDHknne" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">16. WorkBuddy 从零基础到精通实操手册</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-16-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-16-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🍉<br>WorkBuddy 从零基础到精通实操手册​<br>宫格<br>显示设置<br>上传<br>新建<br>名称<br>5000字WorkBuddy 保姆级学习手册：腾讯版「AI小龙虾」从入门到精通<br>最近修改于 4月2日 15:27<br>WorkBuddy × 18个Agent落地执行<br>最近修改于 4月3日 10:50<br>用WorkBuddy养出你的龙虾搭子！【附提示词】<br>最近修改于 4月3日 10:52<br>腾讯版小龙虾 WorkBuddy 来了，接入微信直接替你24小时干活!(实操指南）<br>最近修改于 4月5日 14:15<br>WorkBuddy：从0到1搭建公众号自动化生成爆文保姆级教程！<br>最近修改于 4月8日 22:10<br>📯<br>100个WorkBuddy 应用案例合集：一句话让 AI 帮你搞定所有繁琐工作<br>最近修改于 6月9日 17:09<br>ima知识库+WorkBuddy，把知识管理自动化（内附实操教程）<br>最近修改于 6月1日 17:30<br>用WorkBuddy做Prompt（提示词）进阶：100个模板覆盖高频职场场景<br>最近修改于 5月21日 14:48<br>👍<br>还在手动整理ima？用WorkBuddy帮你自动更新、管理ima知识库（完整教程）<br>最近修改于 5月8日 15:35<br>100+Workbuddy通用提示词，覆盖办公全场景，让你的工作效率翻倍提升。<br>最近修改于 6月9日 17:07<br>108条WorkBuddy高频指令全行业通用模板<br>最近修改于 6月5日 11:16<br>WorkBuddy互联网打工人必备的常用提示词<br>最近修改于 5月22日 14:47<br>WorkBuddy 安装使用完全指南：腾讯版“小龙虾“，一句话让 AI 替你干活<br>最近修改于 5月27日 18:01<br>还在加班做Excel？Workbuddy帮你1小时搞定1天的活！<br>最近修改于 6月11日 17:33<br>用 WorkBuddy 搭建了完整 AI 内容流水线，直接照搬套用<br>最近修改于 5月21日 15:56<br>6个WorkBuddy入门小技巧<br>最近修改于 5月20日 17:00<br>WorkBuddy 好用的十个 Skills，让你的 AI 助手效率翻倍<br>最近修改于 5月25日 17:26<br>WorkBuddy提示词合集—100+行业实操模板<br>最近修改于 5月27日 10:32<br>还在手动整理ima？用WorkBuddy帮你自动更新、管理ima知识库<br>最近修改于 6月1日 17:24<br>还不会提问？workbuddy正确的提问方式<br>最近修改于 5月29日 16:06<br>【教师专用版】WorkBuddy + ima：自动备课实操教程<br>最近修改于 6月2日 15:33<br>从0到1带你速通WorkBuddy，完整版实操教程<br>最近修改于 6月11日 10:36<br>Workbuddy+HR工作的一整套流程完整版搭建教程<br>最近修改于 昨天 10:11<br>Workbuddy从入门到精通—搭建团队知识库实操教程<br>最近修改于 昨天 16:30</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-17')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/JT90wEqBtioYUzkh1PCc2ZVhnIb" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">17. Obsidian从零基础到精通学习手册完整版</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-17-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-17-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>👍<br>Obsidian从零基础到精通学习手册完整版 ​<br>6月5日修改</p>
+<p>本文讨论了 Obsidian 的 Notebook Navigator 插件，该插件可解决笔记管理难题，提升笔记浏览、搜索和管理效率。关键要点包括：​<br>1.<br>安装与配置：需先安装 Obsidian 客户端，开启社区插件，再安装 Notebook Navigator 插件，可选装 Style Settings 插件进行深度定制，安装后需做基础设置。​<br>2.<br>界面布局：采用「导航窗格 + 列表窗格」双栏设计，支持水平和垂直分栏，面板大小可自由调整，支持单双栏切换、独立 UI 缩放，支持 21 种语言。​<br>3.<br>核心功能：过滤搜索可多条件筛选；标签树以树形结构展示标签；快捷方式可保存常用位置；日历视图方便管理周期笔记；支持文件预览和特色图片；有颜色和图标系统；属性浏览器可按元数据筛选；文件夹树支持层级导航。​<br>4.<br>键盘快捷键：支持全键盘操作，有基础导航、多选操作等快捷键，建议自定义配置。​<br>5.<br>使用场景：适用于上班族多项目管理、标签化知识管理、每日复盘与周期笔记、精准筛选待处理任务、多人协作共享库等场景。​<br>6.<br>Vault 配置文件：是进阶功能，个人、团队、项目制用户可根据需求创建配置文件。​<br>7.<br>常见问题及解决：如标签或预览显示不正确、快捷键冲突等问题，可通过重建缓存、检查快捷键绑定等方法解决。 ​<br>✏️<br>📌 前言：你的Obsidian笔记库是否也这样？​<br>用 Obsidian 久了，笔记越来越多，你是不是也开始遇到这些问题 😩：​<br>📂 笔记积累到几千篇后，找文件变成了一件痛苦的事​<br>🏷️ 标签打了几十个，但想快速筛选时发现根本用不起来​<br>⌨️ 想纯键盘操作，但默认文件管理器完全不支持​<br>👀 列表视图只有标题，时间一长根本认不出哪篇是哪篇​<br>🔀 每天要在多个项目文件夹之间来回切换，效率很低​<br>📅 想按日期找笔记，但列表里乱七八糟一团糟​<br>如果你有同感，今天要介绍的这个插件或许能解决你所有烦恼——它叫 Notebook Navigator。​<br>这是一个专门为 Obsidian 打造的双栏文件管理器，可以替代默认的文件侧边栏，让笔记的浏览、搜索、管理效率大幅提升。截至2026年初，它在 GitHub 上已获得超过 18000颗星 ⭐，是 Obsidian 社区中最受欢迎的文件管理插件之一。​<br>🚀 一、安装与基础配置​<br>📥 1.1 安装步骤​<br>第一步：安装 Obsidian 📦 从 Obsidian 官网下载并安装客户端。​<br>第二步：开启社区插件 ⚙️ 打开 Obsidian → 设置 → 社区插件 → 打开「社区插件」开关。​<br>第三步：安装 Notebook Navigator 📥 点击「浏览」→ 搜索「Notebook Navigator」→ 点击安装。​<br>第四步（可选）：安装 Style Settings 插件 🎨 如果想自定义颜色和外观，可以额外安装「Style Settings」插件进行深度定制。​</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-18')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/Ey1sw5L1tij6WLkBhNQc092Lnrd" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">18. Hermes Agent从零基础到精通</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-18-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-18-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>🫱<br>Hermes Agent从零基础到精通—最细部署指南，30分钟手把手教程！​<br>5月9日修改</p>
+<p>本文讨论了 Hermes Agent 的零基础部署指南，涵盖其特点、安装准备、环境搭建、模型选择、安装配置、使用方法及常见问题解决等内容。关键要点包括：​<br>1.<br>Hermes Agent 简介：由 Nous Research 出品的 MIT 开源 AI Agent，两个月冲到 82,000+ stars，会从经验中学习，能自动生成 SOP 复用，与 Claude Code、OpenClaw 功能互补。​<br>2.<br>适用人群：没装过 OpenClaw 的人、觉得 OpenClaw 不够聪明的人、想体验“Agent 自动长出 Skill”的人。​<br>3.<br>安装准备：了解终端/命令行、Python + shell 脚本、API Key、WSL2（Windows 用户）等基础概念，注意国内访问 GitHub 慢和终端输出提示。​<br>4.<br>前置环境搭建：Mac 用户确认 macOS ≥ 12，安装 Homebrew、Python 3.11 和 git；Windows 用户开启 WSL2，进入 Ubuntu 设账号，安装 Python 3.11、git 和 curl。​<br>5.<br>模型选择：可选择 MiniMax Coding Plan（主推）或火山方舟 Coding Plan，备齐 API Key、Base URL、Model 名字。​<br>6.<br>安装配置：使用一条 curl 命令安装并运行向导，按顺序回答问题生成配置文件，验证安装是否成功。​<br>7.<br>使用方法及特点：正常使用 Hermes 完成任务后，它会自动生成 SOP 备忘录，下次同类任务直接复用；还具备闭环学习、MCP 双向集成、Honcho 辩证建模等进阶功能。 ​<br>万字零基础安装Hermes Agent全教程， 高智商小龙虾，你值得拥有。​<br>Hermes Agent。最近都说有替代 Openclaw 的趋势。​<br>一个两个月冲到 82,000+ stars 的东西，或许你也可以试一试。​<br>这一篇，我把所有坑汇总进来做成了这份保姆级教程。Mac 和 Windows 双平台，关键步骤每步截图。不懂 Python、不懂命令行、不懂 Linux——只要会复制粘贴，就能从零跑到你自己的 Hermes 亮起来那一刻。​<br>我先和你说 Hermes 适合谁：​<br>1.<br>没装过 OpenClaw、一直在门外看热闹的人——别绕弯子了，直接从 Hermes 上车，起步就比别人少踩一轮坑。​<br>2.<br>装了 OpenClaw、但总觉得它不够聪明的人——Hermes 会把你每天交代它干的活悄悄记下来，越用越懂你，是那种&quot;昨天教过今天就会&quot;的感觉。​<br>3. 想体验&quot;Agent 自动长出 Skill&quot;的人——OpenClaw 的 Skill 要你手写，Hermes 能在你干完活之后自己在 ~/.hermes/skills/ 里写一份 SOP，下次同类任务直接复用。​<br>4.<br>小声说，其实每个人都适合！！！​<br>对号入座完，咱们开始。​<br>阅读导航：​</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-19')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/ZnQqwenoKi5XMbkGRe9cpgORnNe" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">19. Codex入门教程完整版</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-19-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-19-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>😍<br>Codex入门教程完整版—从零基础到精通学习手册​<br>6月1日修改<br>宫格<br>显示设置<br>上传<br>新建<br>名称<br>Codex 从零基础到精通学习手册<br>最近修改于 昨天 11:07<br>Codex官方使用教程完整版—从0-1学习手册<br>最近修改于 6月5日 14:41<br>🥯<br>3 种方法教你开通 Codex：从注册到第一次使用，零基础也能看懂<br>最近修改于 5月11日 15:22<br>教师版专用——Codex从零基础到精通学习手册<br>最近修改于 5月12日 15:36<br>🕜<br>封神 Codex 指令新手指南，内部整理完整版<br>最近修改于 5月27日 15:16<br>OpenAI Codex 中文完整教程，与 Claude Code 差在哪？<br>最近修改于 5月18日 11:38<br>Codex＋HyperFrames自动剪辑视频王炸组合！（完整版实操教程手册）<br>最近修改于 6月5日 16:18<br>Codex + Chrome 插件，直接操作你的浏览器<br>最近修改于 5月29日 11:10<br>Image 2 + Codex：一键生成可编辑PPT实操教程<br>最近修改于 6月5日 14:40<br>用 Codex 操控 Figma 画布：3 分钟自动建好组件库+变量库<br>最近修改于 6月9日 17:11<br>Image2 + Codex：AI生图一键转可编辑PSD源文件<br>最近修改于 5月26日 11:48<br>Codex 零基础实战教程，夯爆了！带你速通 15 种玩法<br>最近修改于 5月25日 14:27<br>Image 2 +Codex实现PPT编辑自由化实操教程手册<br>最近修改于 5月25日 14:28<br>7天精通上手Codex实操教程（小白友好版）<br>最近修改于 5月26日 17:25<br>Codex 保姆级使用教程！零基础从入门到精通<br>最近修改于 5月28日 15:23<br>Codex批量做出商用电商图——新手实操教程<br>最近修改于 5月28日 15:44<br>Codex+HyperFrames自动剪视频教程，小白也能学会~<br>最近修改于 5月29日 15:10<br>Codex+Obsidian搭建个人知识库完整版<br>最近修改于 6月1日 10:59<br>用 Obsidian + Codex 搭建一套越用越聪明的个人知识库<br>最近修改于 6月1日 14:13<br>Claude Code和Codex接入 Figma MCP 保姆级教程<br>最近修改于 6月3日 16:47</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+                <div class="agent-item" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <div class="agent-header" onclick="toggleAgent('agent-20')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);cursor:pointer;user-select:none;transition:background var(--transition);">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                            <span style="font-size:1.1rem;">📄</span>
+                            <a href="https://tauacgr5lqv.feishu.cn/wiki/IRtewvleii5JfykN3ZBcOXBPn6M" target="_blank" rel="noopener" title="在飞书中打开" onclick="event.stopPropagation()" style="font-weight:600;font-size:.92rem;white-space:nowrap;color:var(--primary);text-decoration:none;">20. Vibe Coding 从入门到精通学习手册</a>
+                            <span style="font-size:.7rem;color:var(--text-secondary);background:var(--tag-bg);padding:2px 8px;border-radius:10px;">文章页</span>
+                        </div>
+                        <span class="agent-arrow" id="agent-20-arrow" style="font-size:.8rem;transition:transform 0.2s;color:var(--text-secondary);">▼</span>
+                    </div>
+                    <div class="agent-body" id="agent-20-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
+                        <p>Vibe Coding 从入门到精通学习手册​<br>晴<br>5月15日修改</p>
+<p>本文讨论了 AI 时代程序员生存手册《Vibe Coding 从入门到精通》的相关内容，涵盖 Vibe Coding 的定义、工作流、工具生态、实战技巧、真实案例以及上下文工程等方面。关键要点包括：​1.Vibe Coding 定义：由 Andrej Karpathy 于 2025 年 2 月提出，截至 2026 年，91% 的工程团队不同程度使用。其核心是用自然语言描述“想要的感觉”，让 AI 写代码，人负责指挥和验收。​2.工作流与模式：是四步闭环，有极速原型和负责任两种模式。极速原型适合快速验证，有技术债；负责任模式适合企业开发，效率提升 5 - 10 倍。​3.工具生态：MCP 让 AI 能操作真实世界，推荐安装 browser - use、server - filesystem 等 MCP。​4.实战技巧：调试时针对不同问题向 AI 反馈；2026 年最佳实践包括维护项目规则文件、每个任务开新对话等。​5.真实案例：非技术创始人 30 分钟上线 SaaS；Rakuten 让 AI 在 1250 万行代码库独立工作 7 小时；AI 发现 Linux 内核 23 年的安全漏洞；30 分钟可从零开发第一个 App。​6.上下文工程：是 2026 年核心竞争力，关注 AI 在任务周期里的上下文。MCP 是其基础设施层。​7.团队使用规范：统一工具、强制 Review、PR 标注、[CLAUDE.md](CLAUDE.md) 进 Git，防止代码混乱。 ​<br>展开<br>AI 时代程序员生存手册：Vibe Coding  从入门到精通​<br>一、什么是 Vibe Coding？​<br>Vibe Coding（氛围编程）由 Andrej Karpathy()（OpenAI 联合创始人、前 Tesla AI 总监）于 2025 年 2 月正式提出，随即被《柯林斯词典》选为年度词汇。截至 2026 年，已有 91% 的工程团队在不同程度上使用这一方式开发软件。​<br>💡 一句话定义：用自然语言描述&quot;想要的感觉&quot;，让 AI 写代码，人只负责指挥方向和验收结果。​<br>编程范式的演进​<br>核心哲学​<br>Code is a liability, functionality is the asset.​<br>代码是负债，功能才是资产。​<br>只要运行效果、交互手感是对的，开发者可以允许自己不阅读每一行生成的代码。这不是懒，而是把人的智识用在了更高维度的问题上——产品判断、用户洞察、业务逻辑。​<br>传统编程 vs Vibe Coding​<br>二、工作流与核心循环​<br>Vibe Coding 不是随意乱说话，而是一套有节奏的四步闭环。理解这个闭环，才能真正高效使用。​</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+<section class="category" id="ai-painting">
+            <div class="cat-header">
+                <h2>🎨 AI绘画</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">主流AI绘画平台教程：Midjourney、Stable Diffusion、即梦、豆包、Nanobanana等</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (20)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">AI绘画从零到一</a><span class="date">2025-08-27</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">AI绘画工具全景图对比</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">AI绘画：指令合集</a><span class="date">2026-02-11</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：绘画Agent</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：其他绘画工具</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Midjourney</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Stable Diffusion教程</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：即梦</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：豆包</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：堆友</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：通义</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：OpenAI GPT</a><span class="date">2025-08-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：炼丹</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Nanobanana</a><span class="date">2026-04-20</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：GPT-image2出图</a><span class="date">2026-04-24</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Claude Design</a><span class="date">2026-04-23</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">AI绘画：案例教程</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">AI绘画：其他活动和教程</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">AI绘画：辅助工具教程</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/LM2Wwy3MziItSGkPkEncFZS4ne5" target="_blank" rel="noopener" title="在飞书中打开">小码哥的 MJ 关键词实践</a><span class="date">2025-08-28</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="ai-video">
+            <div class="cat-header">
+                <h2>🎬 AI视频</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">AI视频制作全流程：Sora2、可灵、即梦、剪映、Vidu、Runway、Pika、Google Veo等</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (20)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">AI视频零基础启蒙：从0到1制作AI视频</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Sora2</a><span class="date">2025-10-16</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：可灵</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Dreamina即梦</a><span class="date">2025-08-26</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：剪映</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Vidu</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Seedance 2.0</a><span class="date">2026-02-11</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：MiniMax海螺AI</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：通义万相</a><span class="date">2025-08-27</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Runway Gen-3</a><span class="date">2025-08-27</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Midjourney</a><span class="date">2025-08-26</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：LuxReal</a><span class="date">2026-02-11</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：拍我AI（PixVerse国内版）</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Pika</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Google Veo</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">AI视频运动镜头词测试</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">AI视频运动镜头测试收集表</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">Prompt Structures 提示结构</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">可复制 Prompt</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/IwUawwbnLifIfMkvVC0c2XGenjE" target="_blank" rel="noopener" title="在飞书中打开">《金刚大战哥斯拉》影片剧情分析</a><span class="date">2025-08-25</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="ai-writing">
+            <div class="cat-header">
+                <h2>✍️ AI写作</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/EU0RwQdG9i8BIukVJmbc7jPWnUf" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">AI写作工具与场景合集，含学术写作、小说创作、写作变现指南</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (9)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/EU0RwQdG9i8BIukVJmbc7jPWnUf" target="_blank" rel="noopener" title="在飞书中打开">AI写作工具合集</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/EU0RwQdG9i8BIukVJmbc7jPWnUf" target="_blank" rel="noopener" title="在飞书中打开">AI写小说零基础到精通</a><span class="date">2025-08-27</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/EU0RwQdG9i8BIukVJmbc7jPWnUf" target="_blank" rel="noopener" title="在飞书中打开">AI写作场景合集</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/EU0RwQdG9i8BIukVJmbc7jPWnUf" target="_blank" rel="noopener" title="在飞书中打开">AI学术写作提示词手册</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/EU0RwQdG9i8BIukVJmbc7jPWnUf" target="_blank" rel="noopener" title="在飞书中打开">写作：AI 写作变现指南</a><span class="date">2025-08-22</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/EU0RwQdG9i8BIukVJmbc7jPWnUf" target="_blank" rel="noopener" title="在飞书中打开">写作者和非写作者 | Paul Graham</a><span class="date">2025-08-23</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/EU0RwQdG9i8BIukVJmbc7jPWnUf" target="_blank" rel="noopener" title="在飞书中打开">《救猫叔》互动式 AI 写作框架</a><span class="date">2025-08-25</span></li>
+<li><a href="https://ecnq7dxx97wc.feishu.cn/wiki/RwOswzaPQiq8kwkDl8OcytuQn3f" target="_blank" rel="noopener" title="在飞书中打开">🎓 LL学姐高校论文资料库分享</a><span class="date">持续更新</span></li>
+<li><a href="https://ecnq7dxx97wc.feishu.cn/wiki/W38gwIqJPiRXxYkhjk7cR4rQnRd" target="_blank" rel="noopener" title="在飞书中打开">📝 硕博论文交流干货分享——飞书版</a><span class="date">持续更新</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="ai-office">
+            <div class="cat-header">
+                <h2>💼 AI办公</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">AI办公效率工具：飞书多维表格、AI PPT、AI Excel、NotebookLM、职场核心指令</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (11)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">AI办公工具精选1</a><span class="date">2025-11-20</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">AI办公工具精选2</a><span class="date">2025-11-20</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">NotebookLM 资料汇总</a><span class="date">2026-05-29</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">工具教程：飞书多维表格</a><span class="date">2025-11-13</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">工具教程：AI PPT</a><span class="date">2025-12-16</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">工具教程：AI EXCEL</a><span class="date">2025-12-16</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">职场人必看的20个核心办公指令</a><span class="date">2025-12-16</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">360AI浏览器学习手册</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/CMHCwIkzEiLSBjkdmPDcn8UsnQ4" target="_blank" rel="noopener" title="在飞书中打开">AI+办公技能实操手册</a><span class="date">2025-12-16</span></li><li><a href="docs/大模型入门资料/DeepSeek赋能职场.pdf" target="_blank" title="打开本地文件">DeepSeek赋能职场</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/Deepseek精通和AI办公提效.pptx" target="_blank" title="打开本地文件">Deepseek精通和AI办公提效（PPT）</a><span class="date">2026</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="ai-coding">
+            <div class="cat-header">
+                <h2>💻 AI编程</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/JMGqwL6sui7A4ckgmzscY0aKnXe" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">AI编程工具精选：Claude Code、Trae、Cursor学习专区、GitHub专区、大屏开发实战</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (15)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/JMGqwL6sui7A4ckgmzscY0aKnXe" target="_blank" rel="noopener" title="在飞书中打开">AI编程工具精选</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/JMGqwL6sui7A4ckgmzscY0aKnXe" target="_blank" rel="noopener" title="在飞书中打开">Claude code学习专区</a><span class="date">2025-10-08</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/JMGqwL6sui7A4ckgmzscY0aKnXe" target="_blank" rel="noopener" title="在飞书中打开">Trae学习专区</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/JMGqwL6sui7A4ckgmzscY0aKnXe" target="_blank" rel="noopener" title="在飞书中打开">Cursor学习专区</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/JMGqwL6sui7A4ckgmzscY0aKnXe" target="_blank" rel="noopener" title="在飞书中打开">精华：Github专区</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/JMGqwL6sui7A4ckgmzscY0aKnXe" target="_blank" rel="noopener" title="在飞书中打开">AI编程实战：Cursor+Claude4 完成大屏开发</a><span class="date">2025-08-25</span></li><li><a href="docs/大模型入门资料/【大模型项目实战】使用RAG技术构建企业级文档问答系统之QA抽取，非常详细！（含开源代码）.pdf" target="_blank" title="打开本地文件">使用RAG技术构建企业级文档问答系统之QA抽取</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/API调用大模型.pdf" target="_blank" title="打开本地文件">API调用大模型</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/Docker 命令汇总.pdf" target="_blank" title="打开本地文件">Docker命令汇总</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大模型部署：Rerank 模型的部署及使用.pdf" target="_blank" title="打开本地文件">大模型部署：Rerank模型的部署及使用</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/大模型的本地部署和微调.pptx" target="_blank" title="打开本地文件">大模型的本地部署和微调（PPT）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/【大模型项目实战】使用RAG技术构建企业级文档问答系统之QA抽取，非常详细！（含开源代码）.md" target="_blank" title="打开本地文件">📝 使用RAG技术构建企业级文档问答系统之QA抽取（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/API调用大模型.md" target="_blank" title="打开本地文件">📝 API调用大模型（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/Docker 命令汇总.md" target="_blank" title="打开本地文件">📝 Docker命令汇总（MD版）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/大模型部署：Rerank 模型的部署及使用.md" target="_blank" title="打开本地文件">📝 大模型部署：Rerank模型的部署及使用（MD版）</a><span class="date">2026</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="ai-education">
+            <div class="cat-header">
+                <h2>📚 AI教育</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/Z0x6wN5gui42iFkVJk2cz29XnUf" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">AI教育工具与教程：九章等教育平台使用指南</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (1)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/Z0x6wN5gui42iFkVJk2cz29XnUf" target="_blank" rel="noopener" title="在飞书中打开">工具教程：九章</a><span class="date">2025-08-25</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="ai-voice">
+            <div class="cat-header">
+                <h2>🎤 AI声音</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/ELFGwDp71iH7b9kFx8cc2omCnUd" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">AI声音工具精选与声音克隆教程（Mockingbird等）</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (2)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/ELFGwDp71iH7b9kFx8cc2omCnUd" target="_blank" rel="noopener" title="在飞书中打开">AI声音工具精选</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/ELFGwDp71iH7b9kFx8cc2omCnUd" target="_blank" rel="noopener" title="在飞书中打开">声音克隆教程-Mockingbird</a><span class="date">2025-08-25</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="ai-music">
+            <div class="cat-header">
+                <h2>🎵 AI音乐</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/Zttbwa0sPi88JDktbibcVzP3nOb" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">AI音乐创作工具：Suno、Eleven Music、UDIO及音乐提示词合集</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (4)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/Zttbwa0sPi88JDktbibcVzP3nOb" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Suno</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/Zttbwa0sPi88JDktbibcVzP3nOb" target="_blank" rel="noopener" title="在飞书中打开">工具教程：Eleven Music</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/Zttbwa0sPi88JDktbibcVzP3nOb" target="_blank" rel="noopener" title="在飞书中打开">工具教程：UDIO</a><span class="date">2025-08-27</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/Zttbwa0sPi88JDktbibcVzP3nOb" target="_blank" rel="noopener" title="在飞书中打开">AI音乐提示词合集</a><span class="date">2025-08-28</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="digital-human">
+            <div class="cat-header">
+                <h2>👤 AI数字人</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/PkVhwI0l4iB9Txkhz8fc0ISQnWf" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">数字人基础、开源项目、HeyGem部署、DUIX交互、形象定制与直播避坑</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (7)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/PkVhwI0l4iB9Txkhz8fc0ISQnWf" target="_blank" rel="noopener" title="在飞书中打开">AI数字人基础认识</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/PkVhwI0l4iB9Txkhz8fc0ISQnWf" target="_blank" rel="noopener" title="在飞书中打开">HeyGem开源数字人部署教程</a><span class="date">2025-08-26</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/PkVhwI0l4iB9Txkhz8fc0ISQnWf" target="_blank" rel="noopener" title="在飞书中打开">DUIX交互平台使用教程</a><span class="date">2025-08-26</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/PkVhwI0l4iB9Txkhz8fc0ISQnWf" target="_blank" rel="noopener" title="在飞书中打开">如何定制形象</a><span class="date">2025-08-28</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/PkVhwI0l4iB9Txkhz8fc0ISQnWf" target="_blank" rel="noopener" title="在飞书中打开">AI数字人直播避坑手册</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/PkVhwI0l4iB9Txkhz8fc0ISQnWf" target="_blank" rel="noopener" title="在飞书中打开">AI数字人开源项目大全</a><span class="date">2025-08-25</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/PkVhwI0l4iB9Txkhz8fc0ISQnWf" target="_blank" rel="noopener" title="在飞书中打开">最强数字人InfiniteTalk介绍</a><span class="date">2025-08-25</span></li></ul>
+            </div>
+        </section>
+        <section class="category" id="ai-reports">
+            <div class="cat-header">
+                <h2>📊 AI研究报告</h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/OhEmw69D8iQp1fkxX3jc4Cjznne" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">行业研究报告精选：OpenAI Agents最佳实践、全球AI创造力报告、AI Coding报告等</p>
+            <div class="sub-pages">
+                <h3>子文档列表 (11)</h3>
+                <ul class="doc-list"><li><a href="https://tauacgr5lqv.feishu.cn/wiki/OhEmw69D8iQp1fkxX3jc4Cjznne" target="_blank" rel="noopener" title="在飞书中打开">OpenAI 最新报告：构建 Agents 最佳实践</a><span class="date">2025-09-04</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/OhEmw69D8iQp1fkxX3jc4Cjznne" target="_blank" rel="noopener" title="在飞书中打开">《智变》白皮书：AI赋能政府与央国企</a><span class="date">2025-09-04</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/OhEmw69D8iQp1fkxX3jc4Cjznne" target="_blank" rel="noopener" title="在飞书中打开">2025全球AI创造力发展报告</a><span class="date">2025-09-04</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/OhEmw69D8iQp1fkxX3jc4Cjznne" target="_blank" rel="noopener" title="在飞书中打开">AI Coding非共识报告丨AI透镜系列研究</a><span class="date">2025-09-04</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/OhEmw69D8iQp1fkxX3jc4Cjznne" target="_blank" rel="noopener" title="在飞书中打开">我们时代的"AI焦虑"，该如何破局？</a><span class="date">2025-09-04</span></li>
+<li><a href="https://tauacgr5lqv.feishu.cn/wiki/OhEmw69D8iQp1fkxX3jc4Cjznne" target="_blank" rel="noopener" title="在飞书中打开">AI相关报告合集</a><span class="date">2025-09-05</span></li><li><a href="docs/大模型入门资料/ACL 2026中RAG论文整理和简析.pdf" target="_blank" title="打开本地文件">ACL 2026中RAG论文整理和简析</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/基准测试（Benchmark）.pdf" target="_blank" title="打开本地文件">基准测试（Benchmark）</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/DeepSeek与AI幻觉.pdf" target="_blank" title="打开本地文件">DeepSeek与AI幻觉</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/DeepSeek+DeepResearch：让科研像聊天一样简单.pdf" target="_blank" title="打开本地文件">DeepSeek+DeepResearch：让科研像聊天一样简单</a><span class="date">2026</span></li><li><a href="docs/大模型入门资料/md/基准测试（Benchmark）.md" target="_blank" title="打开本地文件">📝 基准测试Benchmark（MD版）</a><span class="date">2026</span></li></ul>
+            </div>
+        </section>
+    
+        <section class="category extra-section" id="one-person-company">
+            <div class="cat-header">
+                <h2>💻 <a href="https://tauacgr5lqv.feishu.cn/wiki/SooewcUNoi3OnIkQyQ0c6oiInde" target="_blank" rel="noopener" title="在飞书中打开" style="color:var(--primary);text-decoration:none;">《一人公司》行动指南知识库</a></h2>
+                <a class="feishu-link" href="https://tauacgr5lqv.feishu.cn/wiki/SooewcUNoi3OnIkQyQ0c6oiInde" target="_blank" rel="noopener">在飞书中打开 &#8599;</a>
+            </div>
+            <p class="cat-desc">面向个人创业者的AI行动指南，涵盖独立开发、一人企业运营、AI工具赋能等主题</p>
+        </section>
+    
+</main>
+
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+const sidebar = document.getElementById('sidebar');
+const backTop = document.getElementById('backTop');
+
+function toggleSidebar() { sidebar.classList.toggle('open'); }
+
+// Close sidebar on nav click (mobile)
+sidebar.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => { if(window.innerWidth <= 768) sidebar.classList.remove('open'); });
+});
+
+// Theme toggle
+(function() {
+    const saved = localStorage.getItem('kb-theme');
+    if(saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
+        document.documentElement.setAttribute('data-theme','dark');
+    }
+})();
+function toggleAgent(id) {
+    const body = document.getElementById(id + '-body');
+    const arrow = document.getElementById(id + '-arrow');
+    if (body.style.display === 'none' || !body.style.display) {
+        body.style.display = 'block';
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        body.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('kb-theme', next);
+}
+
+// Back to top
+window.addEventListener('scroll', () => {
+    backTop.style.display = window.scrollY > 400 ? 'flex' : 'none';
+});
+
+// Search
+function doSearch() {
+    const q = document.getElementById('search').value.toLowerCase().trim();
+    const cats = document.querySelectorAll('.category');
+    const noResults = document.getElementById('no-results');
+    let foundAny = false;
+    cats.forEach(cat => {
+        const items = cat.querySelectorAll('.doc-list li');
+        let catVisible = false;
+        items.forEach(li => {
+            const text = li.textContent.toLowerCase();
+            if(!q || text.includes(q)) { li.classList.remove('hidden'); catVisible = true; }
+            else { li.classList.add('hidden'); }
+        });
+        if(q && !catVisible) { cat.classList.add('hidden'); }
+        else { cat.classList.remove('hidden'); foundAny = true; }
+    });
+    noResults.classList.toggle('hidden', !q || foundAny);
+}
+
+function expandAll() { document.querySelectorAll('.category').forEach(c => c.classList.remove('hidden')); document.querySelectorAll('.doc-list li').forEach(li => li.classList.remove('hidden')); document.getElementById('no-results').classList.add('hidden'); document.getElementById('search').value = ''; }
+function collapseAll() { document.querySelectorAll('.doc-list li').forEach(li => li.classList.add('hidden')); }
+</script>
+</body>
+</html>
