@@ -5,9 +5,9 @@ import json, sys, os
 OUTPUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ai-knowledge-base.html')
 
 KB = {
-    'title': '李良艳的AIGC知识库',
-    'subtitle': '李良艳的AIGC知识库 — 超1000+AI文章教程、500+行业报告、300+变现案例',
-    'owner': '李良艳',
+    'title': 'Lillian的AIGC知识库',
+    'subtitle': 'Lillian的AIGC知识库 — 超1000+AI文章教程、500+行业报告、300+变现案例',
+    'owner': 'Lillian',
     'source_url': 'https://tauacgr5lqv.feishu.cn/wiki/PBcJwyfpfiBZirkAOlzcbQ0ynNh',
     'categories': [
         {
@@ -443,7 +443,7 @@ a:hover {{ text-decoration:underline; }}
         </ul>
     </nav>
     <div class="sidebar-footer">
-        数据来源：飞书 · 李良艳的AIGC知识库<br>
+        数据来源：飞书 · Lillian的AIGC知识库<br>
         生成时间：2026-06-15
     </div>
 </aside>

@@ -59,4 +59,4 @@ Claude Code和Codex接入 Figma MCP 保姆级教程
 
 ---
 
-*编辑整理：李良艳*
+*编辑整理：Lillian*

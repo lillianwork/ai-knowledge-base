@@ -104,8 +104,8 @@ for fd in files_data:
     body_parts = body.split('---\n', 1)
     if len(body_parts) > 1:
         body = body_parts[1]
-    # Remove trailing "---\n\n*编辑整理：李良艳*"
-    body = re.sub(r'\n---\n\n\*编辑整理：李良艳\*$', '', body)
+    # Remove trailing "---\n\n*编辑整理：Lillian*"
+    body = re.sub(r'\n---\n\n\*编辑整理：Lillian\*$', '', body)
 
     # Remove leading/trailing whitespace
     body = body.strip()
@@ -134,7 +134,7 @@ for fd in files_data:
                     </div>
                     <div class="agent-body" id="{item_id}-body" style="display:none;padding:16px 20px;border-top:1px solid var(--border);font-size:.88rem;line-height:1.8;max-height:600px;overflow-y:auto;background:var(--surface);">
                         {md_to_html_simple(body)}
-                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：李良艳 | 来源：共研社AIGC知识库</p>
+                        <p style="margin-top:20px;color:var(--text-secondary);font-size:.78rem;border-top:1px solid var(--border);padding-top:8px;">✏️ 编辑整理：Lillian | 来源：共研社AIGC知识库</p>
                     </div>
                 </div>'''
 

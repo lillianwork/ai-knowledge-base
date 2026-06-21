@@ -42,4 +42,4 @@ Hermes Agent。最近都说有替代 Openclaw 的趋势。​
 
 ---
 
-*编辑整理：李良艳*
+*编辑整理：Lillian*

@@ -121,7 +121,7 @@ for idx, (token, info) in enumerate(token_map.items()):
         final_md += f'*本页面为目录页，列出该主题下的所有子文档。*\n\n'
     final_md += cleaned_body
     final_md += f'\n\n---\n\n'
-    final_md += f'*编辑整理：李良艳*\n'
+    final_md += f'*编辑整理：Lillian*\n'
 
     # Save
     safe_title = title.replace('/', '_').replace(' ', '_').replace(':', '').replace('：', '')
@@ -141,7 +141,7 @@ for idx, (token, info) in enumerate(token_map.items()):
 
 # Save index
 index_md = '# AI智能体 — 知识库目录\n\n'
-index_md += '> 来源：共研社AIGC知识库 | 整理：李良艳\n\n'
+index_md += '> 来源：共研社AIGC知识库 | 整理：Lillian\n\n'
 index_md += '---\n\n'
 
 for f in final_files:
